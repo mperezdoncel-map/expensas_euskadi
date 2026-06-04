@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Control de Expensas - Euskadi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
+
+    <header class="bg-slate-950 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-500 p-2 rounded-lg text-slate-950">
+                    <i data-lucide="building-2" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Consorcio Barrio Euskadi</h1>
+                    <p class="text-xs text-slate-400">Panel de Control Financiero y Gestión de Expensas en Tiempo Real</p>
+                </div>
+            </div>
+            <div id="statusConnection" class="flex items-center gap-2 text-sm bg-slate-900 px-3 py-1.5 rounded-full text-slate-300">
+                <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" id="statusDot"></span>
+                <span id="statusText">Conectando a Google Sheets...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <div class="w-full sm:w-48">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Filtrar por Estado</label>
+                    <select id="filterEstado" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
+                        <option value="TODOS">Todos los Estados</option>
+                        <option value="PENDIENTE">Pendientes</option>
+                        <option value="PAGADO">Pagados</option>
+                    </select>
+                </div>
+                <div class="w-full sm:w-64">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Buscar Propietario o Lote</label>
+                    <div class="relative">
+                        <input id="searchQuery" type="text" placeholder="Ej: Lote I, Gonzalez..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-3"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="text-xs text-slate-400 font-medium self-end md:self-center">
+                Última sincronización: <span id="fechaActualizacion" class="font-semibold text-slate-600">-</span>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div class="space-y-1">
+                    <p class="text-sm font-medium text-slate-400">Total Recaudado</p>
+                    <h3 class="text-2xl font-bold text-slate-900" id="kpiRecaudado">$0,00</h3>
+                </div>
+                <div class="bg-emerald-50 p-3 rounded-xl text-emerald-600"><i data-lucide="trending-up"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div class="space-y-1">
+                    <p class="text-sm font-medium text-slate-400">Deuda Pendiente</p>
+                    <h3 class="text-2xl font-bold text-rose-600" id="kpiDeuda">$0,00</h3>
+                </div>
+                <div class="bg-rose-50 p-3 rounded-xl text-rose-600"><i data-lucide="alert-circle"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div class="space-y-1">
+                    <p class="text-sm font-medium text-slate-400">Efectividad Cobro</p>
+                    <h3 class="text-2xl font-bold text-slate-900" id="kpiPorcentaje">0%</h3>
+                </div>
+                <div class="bg-blue-50 p-3 rounded-xl text-blue-600"><i data-lucide="pie-chart"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div class="space-y-1">
+                    <p class="text-sm font-medium text-slate-400">Lotes en Mora</p>
+                    <h3 class="text-2xl font-bold text-slate-900" id="kpiMora">0</h3>
+                </div>
+                <div class="bg-amber-50 p-3 rounded-xl text-amber-600"><i data-lucide="users"></i></div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 lg:col-span-2">
+                <h4 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-500"></i> Evolución Financiera Mensual
+                </h4>
+                <div class="h-64 relative">
+                    <canvas id="chartFinanzas"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                <h4 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                    <i data-lucide="check-square" class="w-4 h-4 text-emerald-500"></i> Estado de Cumplimiento
+                </h4>
+                <div class="h-64 relative flex items-center justify-center">
+                    <canvas id="chartEstados"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h3 class="font-bold text-lg text-slate-900">Registros de la Base de Datos</h3>
+                    <p class="text-xs text-slate-500">Lectura directa y estructurada desde la planilla centralizada</p>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
+                            <th class="p-4">Lote</th>
+                            <th class="p-4">Propietario</th>
+                            <th class="p-4">Período</th>
+                            <th class="p-4">Tipo</th>
+                            <th class="p-4 text-right">Monto Base</th>
+                            <th class="p-4 text-right">Recargo</th>
+                            <th class="p-4 text-right">Total</th>
+                            <th class="p-4 text-center">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaCuerpo" class="divide-y divide-slate-100 text-sm">
+                        <tr>
+                            <td colspan="8" class="p-8 text-center text-slate-400 font-medium">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span class="w-4 h-4 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin"></span>
+                                    Cargando datos desde la nube...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // URL pública en formato CSV vinculada a tu Google Sheet
+        const SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTeRTnTG2O69xGBaDShVvATBv8s9I6w0N2O0Zd1A7RPxMcM8I5w2kksmcMTtMO742WTbJjY28jsp28p/pub?gid=0&single=true&output=csv";
+
+        let baseDeDatosOriginal = [];
+        let chartFinanzasInstance = null;
+        let chartEstadosInstance = null;
+
+        const formatMoneda = (val) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val);
+
+        function limpiarNumero(valor) {
+            if (!valor) return 0;
+            let str = valor.toString().replace(/[^0-9,\-]/g, '').replace(',', '.');
+            let num = parseFloat(str);
+            return isNaN(num) ? 0 : num;
+        }
+
+        async function conectarYFetchData() {
+            try {
+                const response = await fetch(SHEETS_CSV_URL);
+                if (!response.ok) throw new Error("No se pudo conectar al endpoint.");
+                
+                const csvTexto = await response.text();
+                
+                Papa.parse(csvTexto, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        mapearYProcesarDatos(results.data);
+                    },
+                    error: function() {
+                        mostrarError("Error al interpretar la estructura del archivo.");
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+                mostrarError("Error de conexión con la base de datos.");
+            }
+        }
+
+        function mapearYProcesarDatos(filas) {
+            baseDeDatosOriginal = filas.map(fila => {
+                const getVal = (keys) => {
+                    const foundKey = Object.keys(fila).find(k => keys.includes(k.trim().toUpperCase()));
+                    return foundKey ? fila[foundKey] : '';
+                };
+
+                return {
+                    idLote: getVal(['IDLOTE', 'LOTE', 'ID_LOTE']),
+                    propietario: getVal(['PROPIETARIO', 'NOMBRE', 'TITULAR']) || 'SIN PROPIETARIO',
+                    mes: getVal(['MES', 'PERIODO', 'PERÍODO']) || 'S/D',
+                    tipo: getVal(['TIPO', 'CONCEPTO']) || 'EXPENSAS MES',
+                    subtotal: limpiarNumero(getVal(['SUBTOTAL', 'MONTOEXPENSAS', 'MONTO_BASE'])),
+                    recargo: limpiarNumero(getVal(['RECARGO', 'TASARECARGO', 'INTERESES'])),
+                    total: limpiarNumero(getVal(['TOTAL', 'MONTO_TOTAL'])),
+                    estado: (getVal(['ESTADO', 'CONDICION']) || 'PENDIENTE').trim().toUpperCase()
+                };
+            }).filter(item => item.idLote !== '');
+
+            // Actualizar interfaz del estado de conexión
+            document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-emerald-500 rounded-full";
+            document.getElementById('statusText').innerText = "Base de Datos Conectada";
+            document.getElementById('filterEstado').disabled = false;
+            document.getElementById('searchQuery').disabled = false;
+            document.getElementById('fechaActualizacion').innerText = new Date().toLocaleDateString('es-AR', { hour: '2-digit', minute:'2-digit', second: '2-digit' });
+
+            procesarDashboard(baseDeDatosOriginal);
+
+            document.getElementById('filterEstado').addEventListener('change', aplicarFiltros);
+            document.getElementById('searchQuery').addEventListener('input', aplicarFiltros);
+        }
+
+        function aplicarFiltros() {
+            const estadoSelected = document.getElementById('filterEstado').value;
+            const search = document.getElementById('searchQuery').value.toLowerCase();
+
+            const datosFiltrados = baseDeDatosOriginal.filter(item => {
+                const matchesEstado = (estadoSelected === 'TODOS' || item.estado === estadoSelected);
+                const matchesQuery = item.propietario.toLowerCase().includes(search) || item.idLote.toLowerCase().includes(search);
+                return matchesEstado && matchesQuery;
+            });
+
+            procesarDashboard(datosFiltrados);
+        }
+
+        function procesarDashboard(datos) {
+            let totalRecaudado = 0;
+            let totalDeuda = 0;
+            let lotesEnMora = new Set();
+
+            datos.forEach(item => {
+                const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
+                if(item.estado === 'PAGADO' || item.estado === 'COBRADO') {
+                    totalRecaudado += finalTotal;
+                } else {
+                    totalDeuda += finalTotal;
+                    lotesEnMora.add(item.idLote);
+                }
+            });
+
+            const totalFacturado = totalRecaudado + totalDeuda;
+            const porcentajeEfectividad = totalFacturado > 0 ? ((totalRecaudado / totalFacturado) * 100).toFixed(1) : 0;
+
+            document.getElementById('kpiRecaudado').innerText = formatMoneda(totalRecaudado);
+            document.getElementById('kpiDeuda').innerText = formatMoneda(totalDeuda);
+            document.getElementById('kpiPorcentaje').innerText = `${porcentajeEfectividad}%`;
+            document.getElementById('kpiMora').innerText = lotesEnMora.size;
+
+            const tbody = document.getElementById('tablaCuerpo');
+            tbody.innerHTML = '';
+            
+            if(datos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron registros activos</td></tr>`;
+            } else {
+                datos.forEach(item => {
+                    const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
+                    const isPagado = item.estado === 'PAGADO' || item.estado === 'COBRADO';
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-colors";
+                    tr.innerHTML = `
+                        <td class="p-4 font-semibold text-slate-700">Lote ${item.idLote}</td>
+                        <td class="p-4 font-medium text-slate-950">${item.propietario}</td>
+                        <td class="p-4 text-slate-500 capitalize">${item.mes}</td>
+                        <td class="p-4 text-xs font-semibold"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${item.tipo}</span></td>
+                        <td class="p-4 text-right text-slate-600">${formatMoneda(item.subtotal)}</td>
+                        <td class="p-4 text-right text-amber-600">${formatMoneda(item.recargo)}</td>
+                        <td class="p-4 text-right font-semibold text-slate-900">${formatMoneda(finalTotal)}</td>
+                        <td class="p-4 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold shadow-sm tracking-wide ${isPagado ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                                ${item.estado}
+                            </span>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            actualizarGraficos(datos);
+        }
+
+        function actualizarGraficos(datos) {
+            const meses = [...new Set(datos.map(d => d.mes))];
+            const recaudadoPorMes = meses.map(m => datos.filter(d => d.mes === m && (d.estado === 'PAGADO' || d.estado === 'COBRADO')).reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0));
+            const deudaPorMes = meses.map(m => datos.filter(d => d.mes === m && d.estado === 'PENDIENTE').reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0));
+
+            const cantPagados = datos.filter(d => d.estado === 'PAGADO' || d.estado === 'COBRADO').length;
+            const cantPendientes = datos.filter(d => d.estado === 'PENDIENTE').length;
+
+            if (chartFinanzasInstance) chartFinanzasInstance.destroy();
+            if (chartEstadosInstance) chartEstadosInstance.destroy();
+
+            const ctxFinanzas = document.getElementById('chartFinanzas').getContext('2d');
+            chartFinanzasInstance = new Chart(ctxFinanzas, {
+                type: 'bar',
+                data: {
+                    labels: meses,
+                    datasets: [
+                        { label: 'Cobrado', data: recaudadoPorMes, backgroundColor: '#10b981', borderRadius: 4 },
+                        { label: 'Pendiente', data: deudaPorMes, backgroundColor: '#f43f5e', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter' } } } },
+                    scales: { y: { beginAtZero: true, ticks: { font: { family: 'Inter' } } } }
+                }
+            });
+
+            const ctxEstados = document.getElementById('chartEstados').getContext('2d');
+            chartEstadosInstance = new Chart(ctxEstados, {
+                type: 'doughnut',
+                data: {
+                    labels: ['PAGADO', 'PENDIENTE'],
+                    datasets: [{
+                        data: [cantPagados, cantPendientes],
+                        backgroundColor: ['#10b981', '#f43f5e'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter' } } } }
+                }
+            });
+        }
+
+        function mostrarError(mensaje) {
+            document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-rose-500 rounded-full animate-none";
+            document.getElementById('statusText').innerText = "Error de Sincronización";
+            document.getElementById('tablaCuerpo').innerHTML = `<tr><td colspan="8" class="p-8 text-center text-rose-500 font-medium">${mensaje}</td></tr>`;
+        }
+
+        window.onload = function() {
+            lucide.createIcons();
+            conectarYFetchData();
+        };
+    </script>
+</body>
+</html>
