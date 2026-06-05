@@ -12,21 +12,18 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
-        /* Estilos optimizados para impresión / Generación de PDF Gerencial */
+        /* Estilos de optimización absoluta para Impresión y Reportes PDF */
         @media print {
-            body { background-color: #ffffff; color: #000000; }
+            body { background-color: #ffffff; color: #000000; font-size: 12px; }
             header, .no-print, #statusConnection, button { display: none !important; }
             main { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
             section { border: 1px solid #cbd5e1 !important; box-shadow: none !important; page-break-inside: avoid; }
-            .grid { display: grid !important; gap: 12px !important; }
-            .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
-            .sm\:\grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-            .lg\:\grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-            .lg\:\grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+            .grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
             .lg\:col-span-2 { grid-column: span 2 / span 2 !important; }
+            .tabla-container { grid-column: span 2 / span 2 !important; }
             table { width: 100% !important; border-collapse: collapse !important; }
-            th, td { padding: 6px 12px !important; border-bottom: 1px solid #e2e8f0 !important; }
-            tfoot tr { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            th, td { padding: 6px 8px !important; border-bottom: 1px solid #e2e8f0 !important; }
+            .tfoot-totales { background-color: #f8fafc !important; border-top: 2px solid #94a3b8 !important; }
         }
     </style>
 </head>
@@ -39,8 +36,8 @@
                 <p class="text-xs text-slate-400">Panel de Control Financiero y Gestión de Expensas en Tiempo Real</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <button onclick="window.print()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm cursor-pointer">
-                    <i data-lucide="printer" class="w-4 h-4"></i> Imprimir Reporte / PDF
+                <button onclick="window.print()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-4 py-2 rounded-lg border border-slate-700 transition shadow-sm cursor-pointer">
+                    <i data-lucide="printer" class="w-4 h-4 text-emerald-400"></i> Imprimir Reporte / PDF
                 </button>
                 <div id="statusConnection" class="flex items-center gap-2 text-sm bg-slate-900 px-3 py-1.5 rounded-full text-slate-300">
                     <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" id="statusDot"></span>
@@ -70,10 +67,12 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Filtrar por Período / Mes</label>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1 flex justify-between">
+                        <span>Filtrar por Período / Mes</span>
+                    </label>
                     <select id="filterMeses" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
                         <option value="TODOS">Todos los meses</option>
-                    </select>
+                        </select>
                 </div>
             </div>
 
@@ -146,27 +145,43 @@
                 <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i> 
                 Métricas Consolidadas del Mes Vigente: <span id="lblMesCorriente" class="text-slate-600 normal-case ml-1 font-semibold">-</span>
             </div>
-            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-emerald-500">
                     <div class="space-y-1">
-                        <p class="text-xs font-medium text-slate-400">Cobros del Mes Corriente</p>
+                        <p class="text-xs font-medium text-slate-400">Cobros Mes Corriente</p>
                         <h3 class="text-xl font-bold text-emerald-600" id="kpiCobrosMes">$0,00</h3>
                     </div>
                     <div class="bg-slate-50 p-2.5 rounded-xl text-slate-600"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
                 </div>
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-rose-500">
                     <div class="space-y-1">
-                        <p class="text-xs font-medium text-slate-400">Deuda del Mes Corriente</p>
+                        <p class="text-xs font-medium text-slate-400">Deuda Mes Corriente</p>
                         <h3 class="text-xl font-bold text-rose-600" id="kpiDeudaMes">$0,00</h3>
                     </div>
                     <div class="bg-slate-50 p-2.5 rounded-xl text-slate-600"><i data-lucide="alert-triangle" class="w-5 h-5"></i></div>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-amber-500">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-blue-500">
                     <div class="space-y-1">
-                        <p class="text-xs font-medium text-slate-400">Lotes en Mora (Mes Vigente)</p>
+                        <p class="text-xs font-medium text-slate-400">Lotes en Mora</p>
                         <h3 class="text-xl font-bold text-slate-900" id="kpiMoraMes">0</h3>
                     </div>
                     <div class="bg-amber-50 p-2.5 rounded-xl text-amber-600"><i data-lucide="users" class="w-5 h-5"></i></div>
+                </div>
+                
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between items-center min-h-[110px]">
+                    <div class="w-full text-center">
+                        <p class="text-xs font-medium text-slate-400 mb-1">Efectividad Cobro</p>
+                    </div>
+                    <div class="w-full h-14 relative flex items-center justify-center -mt-2">
+                        <canvas id="chartGaugeMes"></canvas>
+                        <div class="absolute bottom-0 text-center">
+                            <span class="text-lg font-bold text-slate-900" id="lblGaugePorcentaje">0%</span>
+                        </div>
+                    </div>
+                    <div class="w-full text-center text-[10px] text-slate-500 font-medium pt-1 border-t border-slate-50">
+                        <span class="text-emerald-600" id="lblGaugePagados">Pagos: 0</span> — 
+                        <span class="text-rose-600" id="lblGaugePendientes">Pendientes: 0</span>
+                    </div>
                 </div>
             </section>
         </div>
@@ -183,34 +198,22 @@
                     <canvas id="chartFinanzas"></canvas>
                 </div>
             </div>
-            
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
-                <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2 mb-2">
-                    <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-500"></i> Efectividad Cobro (Mes Vigente)
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                <h4 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                    <i data-lucide="check-square" class="w-4 h-4 text-emerald-500"></i> Cumplimiento del Mes Corriente
                 </h4>
-                <div class="h-44 relative flex items-center justify-center">
-                    <canvas id="chartGaugeEfectividad"></canvas>
-                    <div class="absolute bottom-2 text-center">
-                        <span id="txtGaugePorcentaje" class="text-2xl font-bold text-slate-950">0%</span>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-center pt-3 border-t border-slate-100 text-xs font-medium">
-                    <div class="bg-emerald-50 p-2 rounded-lg text-emerald-800">
-                        <p class="text-[10px] text-emerald-600 uppercase font-bold tracking-wider">Lotes Pagados</p>
-                        <p id="txtLotesPagadosGauge" class="text-lg font-bold">0</p>
-                    </div>
-                    <div class="bg-rose-50 p-2 rounded-lg text-rose-800">
-                        <p class="text-[10px] text-rose-600 uppercase font-bold tracking-wider">Lotes Pendientes</p>
-                        <p id="txtLotesPendientesGauge" class="text-lg font-bold">0</p>
-                    </div>
+                <div class="h-64 relative flex items-center justify-center">
+                    <canvas id="chartEstados"></canvas>
                 </div>
             </div>
         </section>
 
-        <section class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-            <div class="p-5 border-b border-slate-100">
-                <h3 class="font-bold text-lg text-slate-900">Registros de la Base de Datos</h3>
-                <p class="text-xs text-slate-500">Detalle granular consolidado con fila de cierres financieros de control</p>
+        <section class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden tabla-container">
+            <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h3 class="font-bold text-lg text-slate-900">Registros de la Base de Datos</h3>
+                    <p class="text-xs text-slate-500">Filtro consolidado — Totales calculados sobre saldos pendientes</p>
+                </div>
             </div>
             
             <div class="overflow-x-auto w-full">
@@ -228,22 +231,14 @@
                         </tr>
                     </thead>
                     <tbody id="tablaCuerpo" class="divide-y divide-slate-100 text-sm">
+                        </tbody>
+                    <tfoot class="bg-slate-50 text-slate-900 font-bold border-t-2 border-slate-300 text-sm tfoot-totales">
                         <tr>
-                            <td colspan="8" class="p-8 text-center text-slate-400 font-medium">
-                                <div class="flex items-center justify-center gap-2">
-                                    <span class="w-4 h-4 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin"></span>
-                                    Sincronizando registros financieros...
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                    <tfoot class="bg-slate-100 border-t-2 border-slate-300 font-bold text-slate-900 text-sm">
-                        <tr id="tablaPieTotales">
-                            <td class="p-4" colspan="4">TOTAL REPORTE</td>
-                            <td class="p-4 text-right" id="totMontoBase">$0,00</td>
-                            <td class="p-4 text-right text-amber-700" id="totRecargo">$0,00</td>
-                            <td class="p-4 text-right text-emerald-800" id="totFinal">$0,00</td>
-                            <td class="p-4"></td>
+                            <td colspan="4" class="p-4 text-left uppercase tracking-wider text-xs text-slate-500 font-bold">Total Pendiente de Cobro:</td>
+                            <td class="p-4 text-right text-slate-700" id="totalTabSubtotal">$0,00</td>
+                            <td class="p-4 text-right text-amber-700" id="totalTabRecargo">$0,00</td>
+                            <td class="p-4 text-right text-slate-900 text-base" id="totalTabTotal">$0,00</td>
+                            <td class="p-4 text-center text-xs"><span class="bg-rose-100 text-rose-800 px-2 py-1 rounded font-bold uppercase tracking-wider shadow-sm">MORA NETO</span></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -257,7 +252,9 @@
         let baseDeDatosOriginal = [];
         let periodoVigenteGlobal = "";
         let chartFinanzasInstance = null;
+        let chartEstadosInstance = null;
         let chartGaugeInstance = null;
+        
         let lotesSeleccionados = [];
 
         const mapaLotesEquivalentes = {
@@ -283,13 +280,18 @@
                 const csvTexto = await response.text();
                 
                 Papa.parse(csvTexto, {
-                    header: true, skipEmptyLines: true,
-                    complete: function(results) { mapearYProcesarDatos(results.data); },
-                    error: function() { mostrarError("Error estructural."); }
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        mapearYProcesarDatos(results.data);
+                    },
+                    error: function() {
+                        mostrarError("Error al interpretar la estructura de la base de datos.");
+                    }
                 });
             } catch (error) {
                 console.error(error);
-                mostrarError("Error de conexión externa.");
+                mostrarError("Error de conexión con Google Sheets.");
             }
         }
 
@@ -349,6 +351,7 @@
         function alternarSeleccionLote(numStr) {
             const index = lotesSeleccionados.indexOf(numStr);
             const btn = document.getElementById(`btnLote-${numStr}`);
+            
             if (index > -1) {
                 lotesSeleccionados.splice(index, 1);
                 btn.className = "bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer";
@@ -363,11 +366,13 @@
             document.getElementById('filterEstado').value = 'TODOS';
             document.getElementById('searchQuery').value = '';
             document.getElementById('filterMeses').value = 'TODOS';
+            
             lotesSeleccionados.forEach(numStr => {
                 const btn = document.getElementById(`btnLote-${numStr}`);
                 if (btn) btn.className = "bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer";
             });
             lotesSeleccionados = [];
+            
             procesarDashboard(baseDeDatosOriginal);
         }
 
@@ -382,6 +387,7 @@
                 const matchesQuery = item.propietario.toLowerCase().includes(search) || item.idLote.toLowerCase().includes(search);
                 const matchesMes = (mesSelected === 'TODOS' || item.mes === mesSelected);
                 const matchesLoteMatriz = (codigosRomanosSeleccionados.length === 0 || codigosRomanosSeleccionados.includes(item.idLote));
+                
                 return matchesEstado && matchesQuery && matchesMes && matchesLoteMatriz;
             });
 
@@ -391,11 +397,6 @@
         function procesarDashboard(datosFiltrados) {
             let totalRecaudadoFiltrado = 0;
             let totalDeudaFiltrado = 0;
-            
-            // Variables para acumular totales de la tabla (Dinámicos)
-            let sumMontoBase = 0;
-            let sumRecargo = 0;
-            let sumTotalFinal = 0;
 
             datosFiltrados.forEach(item => {
                 const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
@@ -404,58 +405,67 @@
                 } else {
                     totalDeudaFiltrado += finalTotal;
                 }
-                
-                // Acumulación para el pie del reporte completo
-                sumMontoBase += item.subtotal;
-                sumRecargo += item.recargo;
-                sumTotalFinal += finalTotal;
             });
 
             document.getElementById('kpiRecaudado').innerText = formatMoneda(totalRecaudadoFiltrado);
             document.getElementById('kpiDeuda').innerText = formatMoneda(totalDeudaFiltrado);
             document.getElementById('kpiRegistros').innerText = datosFiltrados.length;
 
-            // Totales al pie de la tabla
-            document.getElementById('totMontoBase').innerText = formatMoneda(sumMontoBase);
-            document.getElementById('totRecargo').innerText = formatMoneda(sumRecargo);
-            document.getElementById('totFinal').innerText = formatMoneda(sumTotalFinal);
-
             // Métricas del mes corriente
             let cobrosMesCorriente = 0;
             let deudaMesCorriente = 0;
             let lotesEnMoraMesCorriente = new Set();
-            let cantPagadosMes = 0;
-            let cantPendientesMes = 0;
+            let cantPagadosGauge = 0;
+            let cantPendientesGauge = 0;
 
             baseDeDatosOriginal.forEach(item => {
                 if (item.mes === periodoVigenteGlobal) {
                     const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
                     if (item.estado === 'PAGADO' || item.estado === 'COBRADO') {
                         cobrosMesCorriente += finalTotal;
-                        cantPagadosMes++;
+                        cantPagadosGauge++;
                     } else {
                         deudaMesCorriente += finalTotal;
-                        cantPendientesMes++;
                         lotesEnMoraMesCorriente.add(item.idLote);
+                        cantPendientesGauge++;
                     }
                 }
             });
+
+            const totalFacturadoMes = cobrosMesCorriente + deudaMesCorriente;
+            const porcentajeEfectividadMes = totalFacturadoMes > 0 ? ((cobrosMesCorriente / totalFacturadoMes) * 100).toFixed(1) : 0;
 
             document.getElementById('kpiCobrosMes').innerText = formatMoneda(cobrosMesCorriente);
             document.getElementById('kpiDeudaMes').innerText = formatMoneda(deudaMesCorriente);
             document.getElementById('kpiMoraMes').innerText = lotesEnMoraMesCorriente.size;
 
-            // Inyectar en la tabla
+            // Inyectar datos del Gauge Gauge
+            document.getElementById('lblGaugePorcentaje').innerText = `${porcentajeEfectividadMes}%`;
+            document.getElementById('lblGaugePagados').innerText = `Pagos: ${cantPagadosGauge}`;
+            document.getElementById('lblGaugePendientes').innerText = `Pendientes: ${cantPendientesGauge}`;
+
+            // 5. Inyectar filas en la tabla y calcular totales dinámicos EXCLUYENDO PAGADOS
             const tbody = document.getElementById('tablaCuerpo');
             tbody.innerHTML = '';
             
+            let acumSubtotalPendiente = 0;
+            let acumRecargoPendiente = 0;
+            let acumTotalPendiente = 0;
+
             if(datosFiltrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron registros bajo los filtros aplicados</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron registros activos</td></tr>`;
             } else {
                 datosFiltrados.forEach(item => {
                     const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
                     const isPagado = item.estado === 'PAGADO' || item.estado === 'COBRADO';
                     
+                    // Sumarizar en el tfoot UNICAMENTE si no está pagado
+                    if (!isPagado) {
+                        acumSubtotalPendiente += item.subtotal;
+                        acumRecargoPendiente += item.recargo;
+                        acumTotalPendiente += finalTotal;
+                    }
+
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 transition-colors";
                     tr.innerHTML = `
@@ -476,36 +486,40 @@
                 });
             }
 
-            actualizarVisualizaciones(cantPagadosMes, cantPendientesMes);
+            // Inyectar los acumulados limpios en el tfoot
+            document.getElementById('totalTabSubtotal').innerText = formatMoneda(acumSubtotalPendiente);
+            document.getElementById('totalTabRecargo').innerText = formatMoneda(acumRecargoPendiente);
+            document.getElementById('totalTabTotal').innerText = formatMoneda(acumTotalPendiente);
+
+            actualizarGraficos(porcentajeEfectividadMes, cantPagadosGauge, cantPendientesGauge);
         }
 
-        function actualizarVisualizaciones(pagados, pendientes) {
-            // --- GRÁFICO 1: BARRAS EVOLUCIÓN HISTÓRICA ---
+        function actualizarGraficos(porcentajeGauge, pagadosCount, pendientesCount) {
             const datosSinSaldo = baseDeDatosOriginal.filter(d => d.tipo !== 'SALDO' && d.mes !== 's/d');
             let mesesHistoricos = [...new Set(datosSinSaldo.map(d => d.mes))];
-            if (mesesHistoricos.length > 12) mesesHistoricos = mesesHistoricos.slice(-12);
+            if (mesesHistoricos.length > 12) {
+                mesesHistoricos = mesesHistoricos.slice(-12);
+            }
 
             const recaudadoPorMes = mesesHistoricos.map(m => 
                 datosSinSaldo.filter(d => d.mes === m && (d.estado === 'PAGADO' || d.estado === 'COBRADO'))
                              .reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
             );
+            
             const deudaPorMes = mesesHistoricos.map(m => 
                 datosSinSaldo.filter(d => d.mes === m && d.estado === 'PENDIENTE')
                              .reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
             );
 
-            // --- CÁLCULO GAUGE (SEMICÍRCULO) ---
-            const totalLotesMes = pagados + pendientes;
-            const porcentajeEfectividad = totalLotesMes > 0 ? ((pagados / totalLotesMes) * 100).toFixed(1) : 0;
-
-            document.getElementById('txtGaugePorcentaje').innerText = `${porcentajeEfectividad}%`;
-            document.getElementById('txtLotesPagadosGauge').innerText = pagados;
-            document.getElementById('txtLotesPendientesGauge').innerText = pendientes;
+            const datosMesCorriente = baseDeDatosOriginal.filter(d => d.mes === periodoVigenteGlobal);
+            const cantPagadosMes = datosMesCorriente.filter(d => d.estado === 'PAGADO' || d.estado === 'COBRADO').length;
+            const cantPendientesMes = datosMesCorriente.filter(d => d.estado === 'PENDIENTE').length;
 
             if (chartFinanzasInstance) chartFinanzasInstance.destroy();
+            if (chartEstadosInstance) chartEstadosInstance.destroy();
             if (chartGaugeInstance) chartGaugeInstance.destroy();
 
-            // Render Gráfico de Barras
+            // 1. Renderizar Gráfico de Barras Histórico
             const ctxFinanzas = document.getElementById('chartFinanzas').getContext('2d');
             chartFinanzasInstance = new Chart(ctxFinanzas, {
                 type: 'bar',
@@ -524,33 +538,47 @@
                 }
             });
 
-            // Render Gráfico Gauge (Semicírculo)
-            const ctxGauge = document.getElementById('chartGaugeEfectividad').getContext('2d');
-            
-            // Determinar color dinámico del semicírculo según el umbral de efectividad
-            let colorGauge = '#10b981'; // Verde Esmeralda por defecto
-            if (porcentajeEfectividad < 50) colorGauge = '#f43f5e'; // Rojo si es menor al 50%
-            else if (porcentajeEfectividad < 80) colorGauge = '#f59e0b'; // Ámbar si está entre 50 y 80
+            // 2. Renderizar Gráfico Doughnut Cumplimiento
+            const ctxEstados = document.getElementById('chartEstados').getContext('2d');
+            chartEstadosInstance = new Chart(ctxEstados, {
+                type: 'doughnut',
+                data: {
+                    labels: ['PAGADO', 'PENDIENTE'],
+                    datasets: [{
+                        data: [cantPagadosMes, cantPendientesMes],
+                        backgroundColor: ['#10b981', '#f43f5e'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } } }
+                }
+            });
 
+            // 3. Renderizar Gráfico Gauge (Semicírculo de Efectividad)
+            const ctxGauge = document.getElementById('chartGaugeMes').getContext('2d');
             chartGaugeInstance = new Chart(ctxGauge, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Cobrado %', 'Pendiente %'],
+                    labels: ['Efectividad', 'Pendiente'],
                     datasets: [{
-                        data: [pagados, pendientes],
-                        backgroundColor: [colorGauge, '#e2e8f0'],
+                        data: [parseFloat(porcentajeGauge), 100 - parseFloat(porcentajeGauge)],
+                        backgroundColor: ['#10b981', '#e2e8f0'],
                         borderWidth: 0
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    circumference: 180, // Limita a un semicírculo
-                    rotation: 270,      // Orienta el semicírculo hacia arriba
-                    cutout: '75%',      // Grosor del anillo
+                    circumference: 180,
+                    rotation: 270,
+                    cutout: '75%',
                     plugins: {
-                        legend: { display: false }, // Ocultamos leyendas ordinarias
-                        tooltip: { enabled: true }
+                        legend: { display: false },
+                        tooltip: { disabled: true }
                     }
                 }
             });
