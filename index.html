@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Control de Expensas - Euskadi</title>
+    <title>Dashboard Control de Expensas - Euskadi v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -11,6 +11,17 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
+        
+        /* Estilos optimizados para impresión / Generación de PDF */
+        @media print {
+            body { background-color: #ffffff; color: #000000; }
+            header, .no-print, #statusConnection, button { display: none !important; }
+            main { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; space-y: 4 !important; }
+            .grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+            .lg\:col-span-2 { grid-column: span 2 / span 2 !important; }
+            section { border: 1px solid #e2e8f0 !important; page-break-inside: avoid; box-shadow: none !important; }
+            canvas { max-height: 220px !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
@@ -26,18 +37,23 @@
                     <p class="text-xs text-slate-400">Panel de Control Financiero y Gestión de Expensas en Tiempo Real</p>
                 </div>
             </div>
-            <div id="statusConnection" class="flex items-center gap-2 text-sm bg-slate-900 px-3 py-1.5 rounded-full text-slate-300">
-                <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" id="statusDot"></span>
-                <span id="statusText">Conectando a Google Sheets...</span>
+            <div class="flex flex-wrap items-center gap-3">
+                <button onclick="window.print()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700 transition shadow-sm">
+                    <i data-lucide="printer" class="w-4 h-4 text-emerald-400"></i> Imprimir / PDF
+                </button>
+                <div id="statusConnection" class="flex items-center gap-2 text-sm bg-slate-900 px-3 py-1.5 rounded-full text-slate-300">
+                    <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" id="statusDot"></span>
+                    <span id="statusText">Conectando a Google Sheets...</span>
+                </div>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                <div class="w-full sm:w-48">
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-4 no-print">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                <div>
                     <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Filtrar por Estado</label>
                     <select id="filterEstado" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
                         <option value="TODOS">Todos los Estados</option>
@@ -45,62 +61,111 @@
                         <option value="PAGADO">Pagados</option>
                     </select>
                 </div>
-                <div class="w-full sm:w-64">
+                <div>
                     <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Buscar Propietario o Lote</label>
                     <div class="relative">
                         <input id="searchQuery" type="text" placeholder="Ej: Lote I, Gonzalez..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
                         <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-3"></i>
                     </div>
                 </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1 flex justify-between">
+                        <span>Filtrar por Período (Multiselección)</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Ctrl/Cmd para elegir varios</span>
+                    </label>
+                    <select id="filterMeses" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[40px]" multiple disabled>
+                        </select>
+                </div>
             </div>
-            <div class="text-xs text-slate-400 font-medium self-end md:self-center">
-                Última sincronización: <span id="fechaActualizacion" class="font-semibold text-slate-600">-</span>
+            <div class="flex justify-between items-center text-xs border-t border-slate-50 pt-3">
+                <button id="btnResetFilters" class="text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1" disabled>
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Restablecer Filtros
+                </button>
+                <div class="text-slate-400 font-medium">
+                    Última sincronización: <span id="fechaActualizacion" class="font-semibold text-slate-600">-</span>
+                </div>
             </div>
         </section>
 
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                <div class="space-y-1">
-                    <p class="text-sm font-medium text-slate-400">Total Recaudado</p>
-                    <h3 class="text-2xl font-bold text-slate-900" id="kpiRecaudado">$0,00</h3>
+        <div>
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 no-print">Métricas según filtros aplicados</div>
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-slate-400">Total Recaudado (Filtro)</p>
+                        <h3 class="text-xl font-bold text-slate-900" id="kpiRecaudado">$0,00</h3>
+                    </div>
+                    <div class="bg-emerald-50 p-2.5 rounded-xl text-emerald-600"><i data-lucide="trending-up" class="w-5 h-5"></i></div>
                 </div>
-                <div class="bg-emerald-50 p-3 rounded-xl text-emerald-600"><i data-lucide="trending-up"></i></div>
-            </div>
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                <div class="space-y-1">
-                    <p class="text-sm font-medium text-slate-400">Deuda Pendiente</p>
-                    <h3 class="text-2xl font-bold text-rose-600" id="kpiDeuda">$0,00</h3>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-slate-400">Deuda Pendiente (Filtro)</p>
+                        <h3 class="text-xl font-bold text-rose-600" id="kpiDeuda">$0,00</h3>
+                    </div>
+                    <div class="bg-rose-50 p-2.5 rounded-xl text-rose-600"><i data-lucide="alert-circle" class="w-5 h-5"></i></div>
                 </div>
-                <div class="bg-rose-50 p-3 rounded-xl text-rose-600"><i data-lucide="alert-circle"></i></div>
-            </div>
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                <div class="space-y-1">
-                    <p class="text-sm font-medium text-slate-400">Efectividad Cobro</p>
-                    <h3 class="text-2xl font-bold text-slate-900" id="kpiPorcentaje">0%</h3>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between sm:col-span-2 lg:col-span-1">
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-slate-400">Registros Listados</p>
+                        <h3 class="text-xl font-bold text-slate-900" id="kpiRegistros">0</h3>
+                    </div>
+                    <div class="bg-blue-50 p-2.5 rounded-xl text-blue-600"><i data-lucide="database" class="w-5 h-5"></i></div>
                 </div>
-                <div class="bg-blue-50 p-3 rounded-xl text-blue-600"><i data-lucide="pie-chart"></i></div>
+            </section>
+        </div>
+
+        <div>
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i> 
+                Métricas Consolidadas del Mes Vigente: <span id="lblMesCorriente" class="text-slate-600 normal-case ml-1 font-semibold">-</span>
             </div>
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                <div class="space-y-1">
-                    <p class="text-sm font-medium text-slate-400">Lotes en Mora</p>
-                    <h3 class="text-2xl font-bold text-slate-900" id="kpiMora">0</h3>
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-emerald-500">
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-slate-400">Cobros Mes Corriente</p>
+                        <h3 class="text-xl font-bold text-emerald-600" id="kpiCobrosMes">$0,00</h3>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-xl text-slate-600"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
                 </div>
-                <div class="bg-amber-50 p-3 rounded-xl text-amber-600"><i data-lucide="users"></i></div>
-            </div>
-        </section>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-rose-500">
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-slate-400">Deuda Mes Corriente</p>
+                        <h3 class="text-xl font-bold text-rose-600" id="kpiDeudaMes">$0,00</h3>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-xl text-slate-600"><i data-lucide="alert-triangle" class="w-5 h-5"></i></div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-blue-500">
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-slate-400">Efectividad Cobro</p>
+                        <h3 class="text-xl font-bold text-slate-900" id="kpiPorcentajeMes">0%</h3>
+                    </div>
+                    <div class="bg-blue-50 p-2.5 rounded-xl text-blue-600"><i data-lucide="pie-chart" class="w-5 h-5"></i></div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-amber-500">
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-slate-400">Lotes en Mora</p>
+                        <h3 class="text-xl font-bold text-slate-900" id="kpiMoraMes">0</h3>
+                    </div>
+                    <div class="bg-amber-50 p-2.5 rounded-xl text-amber-600"><i data-lucide="users" class="w-5 h-5"></i></div>
+                </div>
+            </section>
+        </div>
 
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 lg:col-span-2">
-                <h4 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-500"></i> Evolución Financiera Mensual
-                </h4>
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-500"></i> Evolución Financiera (Últimos 12 Meses)
+                    </h4>
+                    <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-medium">Excluye SALDOS</span>
+                </div>
                 <div class="h-64 relative">
                     <canvas id="chartFinanzas"></canvas>
                 </div>
             </div>
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
                 <h4 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                    <i data-lucide="check-square" class="w-4 h-4 text-emerald-500"></i> Estado de Cumplimiento
+                    <i data-lucide="check-square" class="w-4 h-4 text-emerald-500"></i> Cumplimiento del Mes Corriente
                 </h4>
                 <div class="h-64 relative flex items-center justify-center">
                     <canvas id="chartEstados"></canvas>
@@ -119,7 +184,7 @@
             <div class="overflow-x-auto w-full">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50 text-slate-600 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
+                        <tr class="bg-slate-50 text-slate-600 text-xs font-semibold uppercase tracking-wider border-b border-gray-100">
                             <th class="p-4">Lote</th>
                             <th class="p-4">Propietario</th>
                             <th class="p-4">Período</th>
@@ -135,7 +200,7 @@
                             <td colspan="8" class="p-8 text-center text-slate-400 font-medium">
                                 <div class="flex items-center justify-center gap-2">
                                     <span class="w-4 h-4 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin"></span>
-                                    Cargando datos desde la nube...
+                                    Esperando sincronización de datos...
                                 </div>
                             </td>
                         </tr>
@@ -146,10 +211,10 @@
     </main>
 
     <script>
-        // URL pública en formato CSV vinculada a tu Google Sheet
         const SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTeRTnTG2O69xGBaDShVvATBv8s9I6w0N2O0Zd1A7RPxMcM8I5w2kksmcMTtMO742WTbJjY28jsp28p/pub?gid=0&single=true&output=csv";
 
         let baseDeDatosOriginal = [];
+        let periodoVigenteGlobal = "";
         let chartFinanzasInstance = null;
         let chartEstadosInstance = null;
 
@@ -166,7 +231,6 @@
             try {
                 const response = await fetch(SHEETS_CSV_URL);
                 if (!response.ok) throw new Error("No se pudo conectar al endpoint.");
-                
                 const csvTexto = await response.text();
                 
                 Papa.parse(csvTexto, {
@@ -195,8 +259,8 @@
                 return {
                     idLote: getVal(['IDLOTE', 'LOTE', 'ID_LOTE']),
                     propietario: getVal(['PROPIETARIO', 'NOMBRE', 'TITULAR']) || 'SIN PROPIETARIO',
-                    mes: getVal(['MES', 'PERIODO', 'PERÍODO']) || 'S/D',
-                    tipo: getVal(['TIPO', 'CONCEPTO']) || 'EXPENSAS MES',
+                    mes: (getVal(['MES', 'PERIODO', 'PERÍODO']) || 'S/D').trim().toLowerCase(),
+                    tipo: (getVal(['TIPO', 'CONCEPTO']) || 'EXPENSAS MES').trim().toUpperCase(),
                     subtotal: limpiarNumero(getVal(['SUBTOTAL', 'MONTOEXPENSAS', 'MONTO_BASE'])),
                     recargo: limpiarNumero(getVal(['RECARGO', 'TASARECARGO', 'INTERESES'])),
                     total: limpiarNumero(getVal(['TOTAL', 'MONTO_TOTAL'])),
@@ -204,62 +268,121 @@
                 };
             }).filter(item => item.idLote !== '');
 
-            // Actualizar interfaz del estado de conexión
+            // Determinar automáticamente cuál es el mes más reciente de la planilla (Mes Corriente)
+            const todosLosMeses = [...new Set(baseDeDatosOriginal.map(d => d.mes))].filter(m => m !== 's/d');
+            // Orden simple: asumimos que el último en aparecer en la base de datos es el corriente o más activo
+            periodoVigenteGlobal = todosLosMeses[todosLosMeses.length - 1] || "S/D";
+
+            document.getElementById('lblMesCorriente').innerText = periodoVigenteGlobal;
+
+            // Rellenar el filtro multiselección de meses
+            const selectMeses = document.getElementById('filterMeses');
+            selectMeses.innerHTML = '';
+            todosLosMeses.forEach(mes => {
+                const opt = document.createElement('option');
+                opt.value = mes;
+                opt.innerText = mes.charAt(0).toUpperCase() + mes.slice(1);
+                selectMeses.appendChild(opt);
+            });
+
+            // Activar inputs de la interfaz
             document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-emerald-500 rounded-full";
-            document.getElementById('statusText').innerText = "Base de Datos Conectada";
+            document.getElementById('statusText').innerText = "Base de Datos Sincronizada";
             document.getElementById('filterEstado').disabled = false;
             document.getElementById('searchQuery').disabled = false;
+            document.getElementById('filterMeses').disabled = false;
+            document.getElementById('btnResetFilters').disabled = false;
             document.getElementById('fechaActualizacion').innerText = new Date().toLocaleDateString('es-AR', { hour: '2-digit', minute:'2-digit', second: '2-digit' });
 
+            // Renderizar datos globales iniciales
             procesarDashboard(baseDeDatosOriginal);
 
+            // Listeners
             document.getElementById('filterEstado').addEventListener('change', aplicarFiltros);
             document.getElementById('searchQuery').addEventListener('input', aplicarFiltros);
+            document.getElementById('filterMeses').addEventListener('change', aplicarFiltros);
+            document.getElementById('btnResetFilters').addEventListener('click', resetearFiltros);
+        }
+
+        function resetearFiltros() {
+            document.getElementById('filterEstado').value = 'TODOS';
+            document.getElementById('searchQuery').value = '';
+            const selectMeses = document.getElementById('filterMeses');
+            for (let i = 0; i < selectMeses.options.length; i++) {
+                selectMeses.options[i].selected = false;
+            }
+            procesarDashboard(baseDeDatosOriginal);
         }
 
         function aplicarFiltros() {
             const estadoSelected = document.getElementById('filterEstado').value;
             const search = document.getElementById('searchQuery').value.toLowerCase();
+            
+            // Obtener todos los meses seleccionados en el select multiple
+            const selectMeses = document.getElementById('filterMeses');
+            const mesesSeleccionados = Array.from(selectMeses.selectedOptions).map(option => option.value);
 
             const datosFiltrados = baseDeDatosOriginal.filter(item => {
                 const matchesEstado = (estadoSelected === 'TODOS' || item.estado === estadoSelected);
                 const matchesQuery = item.propietario.toLowerCase().includes(search) || item.idLote.toLowerCase().includes(search);
-                return matchesEstado && matchesQuery;
+                const matchesMes = (mesesSeleccionados.length === 0 || mesesSeleccionados.includes(item.mes));
+                return matchesEstado && matchesQuery && matchesMes;
             });
 
             procesarDashboard(datosFiltrados);
         }
 
-        function procesarDashboard(datos) {
-            let totalRecaudado = 0;
-            let totalDeuda = 0;
-            let lotesEnMora = new Set();
+        function procesarDashboard(datosFiltrados) {
+            // 1. Calcular métricas para el grupo filtrado (Fichas superiores)
+            let totalRecaudadoFiltrado = 0;
+            let totalDeudaFiltrado = 0;
 
-            datos.forEach(item => {
+            datosFiltrados.forEach(item => {
                 const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
                 if(item.estado === 'PAGADO' || item.estado === 'COBRADO') {
-                    totalRecaudado += finalTotal;
+                    totalRecaudadoFiltrado += finalTotal;
                 } else {
-                    totalDeuda += finalTotal;
-                    lotesEnMora.add(item.idLote);
+                    totalDeudaFiltrado += finalTotal;
                 }
             });
 
-            const totalFacturado = totalRecaudado + totalDeuda;
-            const porcentajeEfectividad = totalFacturado > 0 ? ((totalRecaudado / totalFacturado) * 100).toFixed(1) : 0;
+            document.getElementById('kpiRecaudado').innerText = formatMoneda(totalRecaudadoFiltrado);
+            document.getElementById('kpiDeuda').innerText = formatMoneda(totalDeudaFiltrado);
+            document.getElementById('kpiRegistros').innerText = datosFiltrados.length;
 
-            document.getElementById('kpiRecaudado').innerText = formatMoneda(totalRecaudado);
-            document.getElementById('kpiDeuda').innerText = formatMoneda(totalDeuda);
-            document.getElementById('kpiPorcentaje').innerText = `${porcentajeEfectividad}%`;
-            document.getElementById('kpiMora').innerText = lotesEnMora.size;
+            // 2. Calcular métricas exclusivas del Mes Corriente (No afectadas por filtros de la UI)
+            let cobrosMesCorriente = 0;
+            let deudaMesCorriente = 0;
+            let lotesEnMoraMesCorriente = new Set();
 
+            baseDeDatosOriginal.forEach(item => {
+                if (item.mes === periodoVigenteGlobal) {
+                    const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
+                    if (item.estado === 'PAGADO' || item.estado === 'COBRADO') {
+                        cobrosMesCorriente += finalTotal;
+                    } else {
+                        deudaMesCorriente += finalTotal;
+                        lotesEnMoraMesCorriente.add(item.idLote);
+                    }
+                }
+            });
+
+            const totalFacturadoMes = cobrosMesCorriente + deudaMesCorriente;
+            const porcentajeEfectividadMes = totalFacturadoMes > 0 ? ((cobrosMesCorriente / totalFacturadoMes) * 100).toFixed(1) : 0;
+
+            document.getElementById('kpiCobrosMes').innerText = formatMoneda(cobrosMesCorriente);
+            document.getElementById('kpiDeudaMes').innerText = formatMoneda(deudaMesCorriente);
+            document.getElementById('kpiPorcentajeMes').innerText = `${porcentajeEfectividadMes}%`;
+            document.getElementById('kpiMoraMes').innerText = lotesEnMoraMesCorriente.size;
+
+            // 3. Renderizar Tabla del Bloque de Base de Datos
             const tbody = document.getElementById('tablaCuerpo');
             tbody.innerHTML = '';
             
-            if(datos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron registros activos</td></tr>`;
+            if(datosFiltrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron registros bajo los filtros aplicados</td></tr>`;
             } else {
-                datos.forEach(item => {
+                datosFiltrados.forEach(item => {
                     const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
                     const isPagado = item.estado === 'PAGADO' || item.estado === 'COBRADO';
                     
@@ -283,25 +406,46 @@
                 });
             }
 
-            actualizarGraficos(datos);
+            // 4. Refrescar los gráficos con las restricciones estructurales solicitadas
+            actualizarGraficos();
         }
 
-        function actualizarGraficos(datos) {
-            const meses = [...new Set(datos.map(d => d.mes))];
-            const recaudadoPorMes = meses.map(m => datos.filter(d => d.mes === m && (d.estado === 'PAGADO' || d.estado === 'COBRADO')).reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0));
-            const deudaPorMes = meses.map(m => datos.filter(d => d.mes === m && d.estado === 'PENDIENTE').reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0));
+        function actualizarGraficos() {
+            // --- GRÁFICO 1: EVOLUCIÓN FINANCIERA (ÚLTIMOS 12 MESES - EXCLUYE "SALDO") ---
+            // Filtrar movimientos de tipo SALDO de la base completa para este cálculo
+            const datosSinSaldo = baseDeDatosOriginal.filter(d => d.tipo !== 'SALDO' && d.mes !== 's/d');
+            
+            // Obtener los meses únicos y limitar a los últimos 12
+            let mesesHistoricos = [...new Set(datosSinSaldo.map(d => d.mes))];
+            if (mesesHistoricos.length > 12) {
+                mesesHistoricos = mesesHistoricos.slice(-12);
+            }
 
-            const cantPagados = datos.filter(d => d.estado === 'PAGADO' || d.estado === 'COBRADO').length;
-            const cantPendientes = datos.filter(d => d.estado === 'PENDIENTE').length;
+            const recaudadoPorMes = mesesHistoricos.map(m => 
+                datosSinSaldo.filter(d => d.mes === m && (d.estado === 'PAGADO' || d.estado === 'COBRADO'))
+                             .reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
+            );
+            
+            const deudaPorMes = mesesHistoricos.map(m => 
+                datosSinSaldo.filter(d => d.mes === m && d.estado === 'PENDIENTE')
+                             .reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
+            );
 
+            // --- GRÁFICO 2: ESTADO DE CUMPLIMIENTO DEL MES CORRIENTE ---
+            const datosMesCorriente = baseDeDatosOriginal.filter(d => d.mes === periodoVigenteGlobal);
+            const cantPagadosMes = datosMesCorriente.filter(d => d.estado === 'PAGADO' || d.estado === 'COBRADO').length;
+            const cantPendientesMes = datosMesCorriente.filter(d => d.estado === 'PENDIENTE').length;
+
+            // Destrucción de instancias previas para evitar bugs visuales
             if (chartFinanzasInstance) chartFinanzasInstance.destroy();
             if (chartEstadosInstance) chartEstadosInstance.destroy();
 
+            // Renderizar Barras
             const ctxFinanzas = document.getElementById('chartFinanzas').getContext('2d');
             chartFinanzasInstance = new Chart(ctxFinanzas, {
                 type: 'bar',
                 data: {
-                    labels: meses,
+                    labels: mesesHistoricos.map(m => m.charAt(0).toUpperCase() + m.slice(1)),
                     datasets: [
                         { label: 'Cobrado', data: recaudadoPorMes, backgroundColor: '#10b981', borderRadius: 4 },
                         { label: 'Pendiente', data: deudaPorMes, backgroundColor: '#f43f5e', borderRadius: 4 }
@@ -310,18 +454,19 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter' } } } },
-                    scales: { y: { beginAtZero: true, ticks: { font: { family: 'Inter' } } } }
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } } },
+                    scales: { y: { beginAtZero: true, ticks: { font: { family: 'Inter', size: 10 } } }, x: { ticks: { font: { family: 'Inter', size: 10 } } } }
                 }
             });
 
+            // Renderizar Torta (Doughnut)
             const ctxEstados = document.getElementById('chartEstados').getContext('2d');
             chartEstadosInstance = new Chart(ctxEstados, {
                 type: 'doughnut',
                 data: {
                     labels: ['PAGADO', 'PENDIENTE'],
                     datasets: [{
-                        data: [cantPagados, cantPendientes],
+                        data: [cantPagadosMes, cantPendientesMes],
                         backgroundColor: ['#10b981', '#f43f5e'],
                         borderWidth: 2,
                         borderColor: '#ffffff'
@@ -330,7 +475,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter' } } } }
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } } }
                 }
             });
         }
