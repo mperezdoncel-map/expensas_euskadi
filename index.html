@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Control de Expensas - Euskadi I v2.0</title>
+    <title>Dashboard Control de Expensas - BARRIO EUSKADI I - POCITO</title>
+    <!-- Tailwind CSS para diseño moderno y responsive -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para los gráficos interactivos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons para una interfaz limpia -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PapaParse para procesar el CSV de Google Sheets de forma robusta -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -15,35 +19,40 @@
         /* Estilos optimizados para impresión / Generación de PDF */
         @media print {
             body { background-color: #ffffff; color: #000000; }
-            header, .no-print, #statusConnection, button { display: none !important; }
-            main { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; space-y: 4 !important; }
-            .grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
-            .lg\:col-span-2 { grid-column: span 2 / span 2 !important; }
-            section { border: 1px solid #e2e8f0 !important; page-break-inside: avoid; box-shadow: none !important; }
-            canvas { max-height: 220px !important; }
+            header, .no-print, #statusConnection, button, .section-graficos, .section-metrics { display: none !important; }
+            main { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
+            section.tabla-container { display: block !important; border: none !important; box-shadow: none !important; }
+            table { width: 100% !important; border-collapse: collapse !important; }
+            th, td { padding: 8px !important; border-bottom: 1px solid #cbd5e1 !important; }
         }
+
+        /* Forzar ocultar elementos específicos al imprimir solo deudas */
+        .print-only-table header, 
+        .print-only-table .no-print, 
+        .print-only-table .section-metrics, 
+        .print-only-table .section-graficos { display: none !important; }
+        .print-only-table main { max-width: 100% !important; width: 100% !important; padding: 0 !important; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
 
+    <!-- Navbar / Encabezado -->
     <header class="bg-slate-950 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-emerald-500 p-2 rounded-lg text-slate-950">
-                    <i data-lucide="building-2" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold tracking-tight">Consorcio Barrio Euskadi</h1>
-                    <p class="text-xs text-slate-400">Panel de Control Financiero y Gestión de Expensas en Tiempo Real</p>
-                </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight uppercase">BARRIO EUSKADI I - POCITO</h1>
+                <p class="text-xs text-slate-400">Panel de Control Financiero y Gestión de Expensas en Tiempo Real</p>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2">
                 <button onclick="window.print()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700 transition shadow-sm">
-                    <i data-lucide="printer" class="w-4 h-4 text-emerald-400"></i> Imprimir / PDF
+                    <i data-lucide="printer" class="w-4 h-4 text-emerald-400"></i> Pantalla Completa
+                </button>
+                <button onclick="imprimirSoloDeuda()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700 transition shadow-sm">
+                    <i data-lucide="file-text" class="w-4 h-4 text-amber-400"></i> Imprimir Registros
                 </button>
                 <div id="statusConnection" class="flex items-center gap-2 text-sm bg-slate-900 px-3 py-1.5 rounded-full text-slate-300">
                     <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" id="statusDot"></span>
-                    <span id="statusText">Conectando a Google Sheets...</span>
+                    <span id="statusText">Conectando...</span>
                 </div>
             </div>
         </div>
@@ -51,8 +60,10 @@
 
     <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-4 no-print">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+        <!-- Sección de Filtros de Búsqueda Avanzada -->
+        <section class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-5 no-print">
+            <!-- Fila Superior: Controles principales alineados -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Filtrar por Estado</label>
                     <select id="filterEstado" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
@@ -62,24 +73,57 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Buscar Propietario o Lote</label>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Buscar por Propietario</label>
                     <div class="relative">
-                        <input id="searchQuery" type="text" placeholder="Ej: Lote I, Gonzalez..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
+                        <input id="searchQuery" type="text" placeholder="Buscar nombre..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
                         <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-3"></i>
                     </div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 uppercase mb-1 flex justify-between">
-                        <span>Filtrar por Período (Multiselección)</span>
-                        <span class="text-[10px] text-slate-400 font-normal">Ctrl/Cmd para elegir varios</span>
+                        <span>Filtrar por Período / Mes</span>
                     </label>
-                    <select id="filterMeses" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[40px]" multiple disabled>
-                        </select>
+                    <select id="filterMeses" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
+                        <option value="TODOS">Todos los meses</option>
+                        <!-- Cargados dinámicamente -->
+                    </select>
                 </div>
             </div>
+
+            <!-- Fila Inferior: Selector Matricial de Lotes Fijos (Estructura de 2 Filas x 10 Columnas) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Selección Individual o Múltiple de Lotes</label>
+                <div class="grid grid-cols-10 gap-2 text-center" id="contenedorLotesBotonera">
+                    <!-- Fila 1 (01 al 10) -->
+                    <button id="btnLote-01" onclick="alternarSeleccionLote('01')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>01</button>
+                    <button id="btnLote-02" onclick="alternarSeleccionLote('02')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>02</button>
+                    <button id="btnLote-03" onclick="alternarSeleccionLote('03')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>03</button>
+                    <button id="btnLote-04" onclick="alternarSeleccionLote('04')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>04</button>
+                    <button id="btnLote-05" onclick="alternarSeleccionLote('05')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>05</button>
+                    <button id="btnLote-06" onclick="alternarSeleccionLote('06')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>06</button>
+                    <button id="btnLote-07" onclick="alternarSeleccionLote('07')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>07</button>
+                    <button id="btnLote-08" onclick="alternarSeleccionLote('08')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>08</button>
+                    <button id="btnLote-09" onclick="alternarSeleccionLote('09')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>09</button>
+                    <button id="btnLote-10" onclick="alternarSeleccionLote('10')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>10</button>
+                    
+                    <!-- Fila 2 (11 al 20) -->
+                    <button id="btnLote-11" onclick="alternarSeleccionLote('11')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>11</button>
+                    <button id="btnLote-12" onclick="alternarSeleccionLote('12')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>12</button>
+                    <button id="btnLote-13" onclick="alternarSeleccionLote('13')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>13</button>
+                    <button id="btnLote-14" onclick="alternarSeleccionLote('14')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>14</button>
+                    <button id="btnLote-15" onclick="alternarSeleccionLote('15')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>15</button>
+                    <button id="btnLote-16" onclick="alternarSeleccionLote('16')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>16</button>
+                    <button id="btnLote-17" onclick="alternarSeleccionLote('17')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>17</button>
+                    <button id="btnLote-18" onclick="alternarSeleccionLote('18')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>18</button>
+                    <button id="btnLote-19" onclick="alternarSeleccionLote('19')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>19</button>
+                    <button id="btnLote-20" onclick="alternarSeleccionLote('20')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer" disabled>20</button>
+                </div>
+            </div>
+
+            <!-- Botón de Reset y Fecha de Sincronismo -->
             <div class="flex justify-between items-center text-xs border-t border-slate-50 pt-3">
                 <button id="btnResetFilters" class="text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1" disabled>
-                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Restablecer Filtros
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Restablecer Todos los Filtros
                 </button>
                 <div class="text-slate-400 font-medium">
                     Última sincronización: <span id="fechaActualizacion" class="font-semibold text-slate-600">-</span>
@@ -87,7 +131,8 @@
             </div>
         </section>
 
-        <div>
+        <!-- Bloque de Métricas Globales / Filtradas -->
+        <div class="section-metrics">
             <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 no-print">Métricas según filtros aplicados</div>
             <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
@@ -114,7 +159,8 @@
             </section>
         </div>
 
-        <div>
+        <!-- Control de Gestión del Mes Corriente -->
+        <div class="section-metrics">
             <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
                 <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i> 
                 Métricas Consolidadas del Mes Vigente: <span id="lblMesCorriente" class="text-slate-600 normal-case ml-1 font-semibold">-</span>
@@ -151,7 +197,8 @@
             </section>
         </div>
 
-        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Bloque Gráficos -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 section-graficos">
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 lg:col-span-2">
                 <div class="flex justify-between items-center mb-4">
                     <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
@@ -173,11 +220,12 @@
             </div>
         </section>
 
-        <section class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <!-- Tabla de Datos (Vista Base de Datos) -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden tabla-container">
             <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h3 class="font-bold text-lg text-slate-900">Registros de la Base de Datos</h3>
-                    <p class="text-xs text-slate-500">Lectura directa y estructurada desde la planilla centralizada</p>
+                    <p class="text-xs text-slate-500">Filtro consolidado - BARRIO EUSKADI I</p>
                 </div>
             </div>
             
@@ -200,7 +248,7 @@
                             <td colspan="8" class="p-8 text-center text-slate-400 font-medium">
                                 <div class="flex items-center justify-center gap-2">
                                     <span class="w-4 h-4 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin"></span>
-                                    Esperando sincronización de datos...
+                                    Esperando sincronización de datos de la nube...
                                 </div>
                             </td>
                         </tr>
@@ -210,6 +258,7 @@
         </section>
     </main>
 
+    <!-- Lógica de Control de Base de Datos y Filtros Avanzados -->
     <script>
         const SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTeRTnTG2O69xGBaDShVvATBv8s9I6w0N2O0Zd1A7RPxMcM8I5w2kksmcMTtMO742WTbJjY28jsp28p/pub?gid=0&single=true&output=csv";
 
@@ -217,6 +266,17 @@
         let periodoVigenteGlobal = "";
         let chartFinanzasInstance = null;
         let chartEstadosInstance = null;
+        
+        // Estado de lotes seleccionados matricialmente
+        let lotesSeleccionados = [];
+
+        // Diccionario estricto de equivalencia de números a formato de IDLote Romano
+        const mapaLotesEquivalentes = {
+            "01": "I", "02": "II", "03": "III", "04": "IV", "05": "V",
+            "06": "VI", "07": "VII", "08": "VIII", "09": "IX", "10": "X",
+            "11": "XI", "12": "XII", "13": "XIII", "14": "XIV", "15": "XV",
+            "16": "XVI", "17": "XVII", "18": "XVIII", "19": "XIX", "20": "XX"
+        };
 
         const formatMoneda = (val) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val);
 
@@ -225,6 +285,14 @@
             let str = valor.toString().replace(/[^0-9,\-]/g, '').replace(',', '.');
             let num = parseFloat(str);
             return isNaN(num) ? 0 : num;
+        }
+
+        function imprimirSoloDeuda() {
+            document.body.classList.add('print-only-table');
+            window.print();
+            setTimeout(() => {
+                document.body.classList.remove('print-only-table');
+            }, 1000);
         }
 
         async function conectarYFetchData() {
@@ -240,12 +308,12 @@
                         mapearYProcesarDatos(results.data);
                     },
                     error: function() {
-                        mostrarError("Error al interpretar la estructura del archivo.");
+                        mostrarError("Error al interpretar la estructura de la base de datos.");
                     }
                 });
             } catch (error) {
                 console.error(error);
-                mostrarError("Error de conexión con la base de datos.");
+                mostrarError("Error de conexión con Google Sheets.");
             }
         }
 
@@ -257,7 +325,7 @@
                 };
 
                 return {
-                    idLote: getVal(['IDLOTE', 'LOTE', 'ID_LOTE']),
+                    idLote: (getVal(['IDLOTE', 'LOTE', 'ID_LOTE'])).trim().toUpperCase(),
                     propietario: getVal(['PROPIETARIO', 'NOMBRE', 'TITULAR']) || 'SIN PROPIETARIO',
                     mes: (getVal(['MES', 'PERIODO', 'PERÍODO']) || 'S/D').trim().toLowerCase(),
                     tipo: (getVal(['TIPO', 'CONCEPTO']) || 'EXPENSAS MES').trim().toUpperCase(),
@@ -268,16 +336,14 @@
                 };
             }).filter(item => item.idLote !== '');
 
-            // Determinar automáticamente cuál es el mes más reciente de la planilla (Mes Corriente)
             const todosLosMeses = [...new Set(baseDeDatosOriginal.map(d => d.mes))].filter(m => m !== 's/d');
-            // Orden simple: asumimos que el último en aparecer en la base de datos es el corriente o más activo
             periodoVigenteGlobal = todosLosMeses[todosLosMeses.length - 1] || "S/D";
 
             document.getElementById('lblMesCorriente').innerText = periodoVigenteGlobal;
 
-            // Rellenar el filtro multiselección de meses
+            // Rellenar select de meses
             const selectMeses = document.getElementById('filterMeses');
-            selectMeses.innerHTML = '';
+            selectMeses.innerHTML = '<option value="TODOS">Todos los meses</option>';
             todosLosMeses.forEach(mes => {
                 const opt = document.createElement('option');
                 opt.value = mes;
@@ -285,55 +351,78 @@
                 selectMeses.appendChild(opt);
             });
 
-            // Activar inputs de la interfaz
+            // Habilitar los 20 botones fijos de la matriz
+            Object.keys(mapaLotesEquivalentes).forEach(numStr => {
+                const btn = document.getElementById(`btnLote-${numStr}`);
+                if (btn) btn.disabled = false;
+            });
+
+            // Cambiar estados de conexión
             document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-emerald-500 rounded-full";
-            document.getElementById('statusText').innerText = "Base de Datos Sincronizada";
+            document.getElementById('statusText').innerText = "Sincronizado";
             document.getElementById('filterEstado').disabled = false;
             document.getElementById('searchQuery').disabled = false;
             document.getElementById('filterMeses').disabled = false;
             document.getElementById('btnResetFilters').disabled = false;
             document.getElementById('fechaActualizacion').innerText = new Date().toLocaleDateString('es-AR', { hour: '2-digit', minute:'2-digit', second: '2-digit' });
 
-            // Renderizar datos globales iniciales
             procesarDashboard(baseDeDatosOriginal);
 
-            // Listeners
             document.getElementById('filterEstado').addEventListener('change', aplicarFiltros);
             document.getElementById('searchQuery').addEventListener('input', aplicarFiltros);
             document.getElementById('filterMeses').addEventListener('change', aplicarFiltros);
-            document.getElementById('btnResetFilters').addEventListener('click', resetearFiltros);
+        }
+
+        function alternarSeleccionLote(numStr) {
+            const index = lotesSeleccionados.indexOf(numStr);
+            const btn = document.getElementById(`btnLote-${numStr}`);
+            
+            if (index > -1) {
+                lotesSeleccionados.splice(index, 1);
+                btn.className = "bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer";
+            } else {
+                lotesSeleccionados.push(numStr);
+                btn.className = "bg-emerald-600 text-white font-bold text-xs py-2.5 rounded-lg border border-emerald-700 shadow-sm transition-all cursor-pointer";
+            }
+            aplicarFiltros();
         }
 
         function resetearFiltros() {
             document.getElementById('filterEstado').value = 'TODOS';
             document.getElementById('searchQuery').value = '';
-            const selectMeses = document.getElementById('filterMeses');
-            for (let i = 0; i < selectMeses.options.length; i++) {
-                selectMeses.options[i].selected = false;
-            }
+            document.getElementById('filterMeses').value = 'TODOS';
+            
+            // Limpiar estilos de la botonera matricial
+            lotesSeleccionados.forEach(numStr => {
+                const btn = document.getElementById(`btnLote-${numStr}`);
+                if (btn) btn.className = "bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-lg border border-slate-200 transition-all cursor-pointer";
+            });
+            lotesSeleccionados = [];
+            
             procesarDashboard(baseDeDatosOriginal);
         }
 
         function aplicarFiltros() {
             const estadoSelected = document.getElementById('filterEstado').value;
             const search = document.getElementById('searchQuery').value.toLowerCase();
-            
-            // Obtener todos los meses seleccionados en el select multiple
-            const selectMeses = document.getElementById('filterMeses');
-            const mesesSeleccionados = Array.from(selectMeses.selectedOptions).map(option => option.value);
+            const mesSelected = document.getElementById('filterMeses').value;
+
+            // Traducir los números de lotes seleccionados a su representación romana
+            const codigosRomanosSeleccionados = lotesSeleccionados.map(num => mapaLotesEquivalentes[num]);
 
             const datosFiltrados = baseDeDatosOriginal.filter(item => {
                 const matchesEstado = (estadoSelected === 'TODOS' || item.estado === estadoSelected);
                 const matchesQuery = item.propietario.toLowerCase().includes(search) || item.idLote.toLowerCase().includes(search);
-                const matchesMes = (mesesSeleccionados.length === 0 || mesesSeleccionados.includes(item.mes));
-                return matchesEstado && matchesQuery && matchesMes;
+                const matchesMes = (mesSelected === 'TODOS' || item.mes === mesSelected);
+                const matchesLoteMatriz = (codigosRomanosSeleccionados.length === 0 || codigosRomanosSeleccionados.includes(item.idLote));
+                
+                return matchesEstado && matchesQuery && matchesMes && matchesLoteMatriz;
             });
 
             procesarDashboard(datosFiltrados);
         }
 
         function procesarDashboard(datosFiltrados) {
-            // 1. Calcular métricas para el grupo filtrado (Fichas superiores)
             let totalRecaudadoFiltrado = 0;
             let totalDeudaFiltrado = 0;
 
@@ -350,7 +439,7 @@
             document.getElementById('kpiDeuda').innerText = formatMoneda(totalDeudaFiltrado);
             document.getElementById('kpiRegistros').innerText = datosFiltrados.length;
 
-            // 2. Calcular métricas exclusivas del Mes Corriente (No afectadas por filtros de la UI)
+            // Métricas fijas del mes corriente
             let cobrosMesCorriente = 0;
             let deudaMesCorriente = 0;
             let lotesEnMoraMesCorriente = new Set();
@@ -375,12 +464,11 @@
             document.getElementById('kpiPorcentajeMes').innerText = `${porcentajeEfectividadMes}%`;
             document.getElementById('kpiMoraMes').innerText = lotesEnMoraMesCorriente.size;
 
-            // 3. Renderizar Tabla del Bloque de Base de Datos
             const tbody = document.getElementById('tablaCuerpo');
             tbody.innerHTML = '';
             
             if(datosFiltrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron registros bajo los filtros aplicados</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron registros activos bajo los filtros seleccionados</td></tr>`;
             } else {
                 datosFiltrados.forEach(item => {
                     const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
@@ -406,16 +494,11 @@
                 });
             }
 
-            // 4. Refrescar los gráficos con las restricciones estructurales solicitadas
             actualizarGraficos();
         }
 
         function actualizarGraficos() {
-            // --- GRÁFICO 1: EVOLUCIÓN FINANCIERA (ÚLTIMOS 12 MESES - EXCLUYE "SALDO") ---
-            // Filtrar movimientos de tipo SALDO de la base completa para este cálculo
             const datosSinSaldo = baseDeDatosOriginal.filter(d => d.tipo !== 'SALDO' && d.mes !== 's/d');
-            
-            // Obtener los meses únicos y limitar a los últimos 12
             let mesesHistoricos = [...new Set(datosSinSaldo.map(d => d.mes))];
             if (mesesHistoricos.length > 12) {
                 mesesHistoricos = mesesHistoricos.slice(-12);
@@ -431,16 +514,13 @@
                              .reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
             );
 
-            // --- GRÁFICO 2: ESTADO DE CUMPLIMIENTO DEL MES CORRIENTE ---
             const datosMesCorriente = baseDeDatosOriginal.filter(d => d.mes === periodoVigenteGlobal);
             const cantPagadosMes = datosMesCorriente.filter(d => d.estado === 'PAGADO' || d.estado === 'COBRADO').length;
             const cantPendientesMes = datosMesCorriente.filter(d => d.estado === 'PENDIENTE').length;
 
-            // Destrucción de instancias previas para evitar bugs visuales
             if (chartFinanzasInstance) chartFinanzasInstance.destroy();
             if (chartEstadosInstance) chartEstadosInstance.destroy();
 
-            // Renderizar Barras
             const ctxFinanzas = document.getElementById('chartFinanzas').getContext('2d');
             chartFinanzasInstance = new Chart(ctxFinanzas, {
                 type: 'bar',
@@ -455,11 +535,10 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } } },
-                    scales: { y: { beginAtZero: true, ticks: { font: { family: 'Inter', size: 10 } } }, x: { ticks: { font: { family: 'Inter', size: 10 } } } }
+                    scales: { y: { beginAtZero: true, ticks: { font: { family: 'Inter', size: 10 } } } }
                 }
             });
 
-            // Renderizar Torta (Doughnut)
             const ctxEstados = document.getElementById('chartEstados').getContext('2d');
             chartEstadosInstance = new Chart(ctxEstados, {
                 type: 'doughnut',
@@ -482,13 +561,14 @@
 
         function mostrarError(mensaje) {
             document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-rose-500 rounded-full animate-none";
-            document.getElementById('statusText').innerText = "Error de Sincronización";
+            document.getElementById('statusText').innerText = "Error Sincro";
             document.getElementById('tablaCuerpo').innerHTML = `<tr><td colspan="8" class="p-8 text-center text-rose-500 font-medium">${mensaje}</td></tr>`;
         }
 
         window.onload = function() {
             lucide.createIcons();
             conectarYFetchData();
+            document.getElementById('btnResetFilters').addEventListener('click', resetearFiltros);
         };
     </script>
 </body>
