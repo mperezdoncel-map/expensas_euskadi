@@ -1,495 +1,1063 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Control de Expensas - Euskadi v2.0</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        
-        /* Estilos optimizados para impresión / Generación de PDF */
-        @media print {
-            body { background-color: #ffffff; color: #000000; }
-            header, .no-print, #statusConnection, button { display: none !important; }
-            main { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; space-y: 4 !important; }
-            .grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
-            .lg\:col-span-2 { grid-column: span 2 / span 2 !important; }
-            section { border: 1px solid #e2e8f0 !important; page-break-inside: avoid; box-shadow: none !important; }
-            canvas { max-height: 220px !important; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barrio Privado Euskadi I · Panel Financiero</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════ */
+:root { --ease: cubic-bezier(.4,0,.2,1); --dur: .22s; }
+
+[data-theme="dark"] {
+  --bg:        #080b10;
+  --bg2:       #0e1420;
+  --panel:     #111827;
+  --panel2:    #161f2e;
+  --glass:     rgba(255,255,255,.04);
+  --glassB:    rgba(255,255,255,.08);
+  --border:    rgba(255,255,255,.08);
+  --borderB:   rgba(255,255,255,.14);
+  --t1:        #f0f6ff;
+  --t2:        #8899b0;
+  --t3:        #445567;
+  --green:     #00e676;
+  --greenD:    rgba(0,230,118,.12);
+  --red:       #ff4d6d;
+  --redD:      rgba(255,77,109,.12);
+  --blue:      #4fc3f7;
+  --blueD:     rgba(79,195,247,.12);
+  --amber:     #ffb74d;
+  --amberD:    rgba(255,183,77,.12);
+  --purple:    #ce93d8;
+  --purpleD:   rgba(206,147,216,.12);
+  --glow-g:    rgba(0,230,118,.15);
+  --glow-r:    rgba(255,77,109,.15);
+  --chart-bg:  #0e1420;
+  --scrollT:   #0e1420;
+  --scrollTh:  #1e2d40;
+}
+[data-theme="light"] {
+  --bg:        #f0f4fa;
+  --bg2:       #e8edf6;
+  --panel:     #ffffff;
+  --panel2:    #f8fafd;
+  --glass:     rgba(0,0,0,.03);
+  --glassB:    rgba(0,0,0,.07);
+  --border:    rgba(0,0,0,.08);
+  --borderB:   rgba(0,0,0,.14);
+  --t1:        #0d1b2e;
+  --t2:        #4a5768;
+  --t3:        #a0aab8;
+  --green:     #00a152;
+  --greenD:    rgba(0,161,82,.1);
+  --red:       #d32f2f;
+  --redD:      rgba(211,47,47,.1);
+  --blue:      #0277bd;
+  --blueD:     rgba(2,119,189,.1);
+  --amber:     #e65100;
+  --amberD:    rgba(230,81,0,.1);
+  --purple:    #6a1b9a;
+  --purpleD:   rgba(106,27,154,.1);
+  --glow-g:    rgba(0,161,82,.08);
+  --glow-r:    rgba(211,47,47,.08);
+  --chart-bg:  #ffffff;
+  --scrollT:   #f0f4fa;
+  --scrollTh:  #c8d0dc;
+}
+
+/* ═══════════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Syne',sans-serif;
+  background:var(--bg);
+  color:var(--t1);
+  min-height:100vh;
+  transition:background var(--dur) var(--ease),color var(--dur) var(--ease);
+}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--scrollT)}
+::-webkit-scrollbar-thumb{background:var(--scrollTh);border-radius:4px}
+
+/* ═══════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════ */
+header{
+  position:sticky;top:0;z-index:200;
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(20px);
+}
+.hdr{
+  max-width:1400px;margin:0 auto;padding:0 28px;
+  height:62px;display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-gem{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--green),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px var(--glow-g);
+  flex-shrink:0;
+}
+.logo-gem svg{width:18px;height:18px;stroke:#fff}
+.logo-name{font-size:15px;font-weight:800;letter-spacing:-.3px;color:var(--t1)}
+.logo-sub{font-size:10px;font-weight:500;color:var(--t3);letter-spacing:.6px;text-transform:uppercase;margin-top:1px}
+.hdr-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:8px;
+  font-size:12px;font-weight:700;font-family:inherit;
+  cursor:pointer;border:1px solid transparent;
+  transition:all var(--dur) var(--ease);white-space:nowrap;letter-spacing:.2px;
+}
+.btn svg{width:13px;height:13px;flex-shrink:0}
+.btn-outline{
+  background:var(--glass);border-color:var(--border);color:var(--t2);
+}
+.btn-outline:hover{background:var(--glassB);border-color:var(--borderB);color:var(--t1)}
+.btn-danger{
+  background:var(--redD);border-color:rgba(255,77,109,.3);color:var(--red);
+}
+.btn-danger:hover{background:rgba(255,77,109,.22);box-shadow:0 0 16px var(--glow-r)}
+.btn-circle{
+  width:34px;height:34px;padding:0;justify-content:center;
+  border-radius:50%;background:var(--glass);border-color:var(--border);color:var(--t2);
+}
+.btn-circle:hover{color:var(--t1);background:var(--glassB)}
+
+/* Status pill */
+.status-pill{
+  display:flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:600;color:var(--t2);
+  background:var(--glass);border:1px solid var(--border);
+  padding:5px 12px;border-radius:20px;letter-spacing:.2px;
+}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0}
+.sdot.pulse{animation:_pulse 1.4s ease-in-out infinite}
+.sdot.ok{background:var(--green);animation:none;box-shadow:0 0 8px var(--green)}
+.sdot.err{background:var(--red);animation:none}
+@keyframes _pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════ */
+main{max-width:1400px;margin:0 auto;padding:28px;display:flex;flex-direction:column;gap:24px}
+
+/* section label */
+.slabel{
+  font-size:9px;font-weight:700;letter-spacing:1.4px;
+  text-transform:uppercase;color:var(--t3);
+  display:flex;align-items:center;gap:5px;margin-bottom:10px;
+}
+.slabel::after{content:'';flex:1;height:1px;background:var(--border);margin-left:4px}
+
+/* ═══════════════════════════════════════════════
+   GLASS PANEL
+═══════════════════════════════════════════════ */
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease);
+  overflow:hidden;
+}
+.panel-pad{padding:20px}
+.panel-head{
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.panel-title{font-size:13px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:8px}
+.panel-title svg{width:15px;height:15px;flex-shrink:0}
+
+/* ═══════════════════════════════════════════════
+   FILTERS
+═══════════════════════════════════════════════ */
+.filter-grid{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:16px;align-items:end}
+@media(max-width:860px){.filter-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:540px){.filter-grid{grid-template-columns:1fr}}
+
+.field-lbl{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:9px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--t3);margin-bottom:6px;
+}
+.field-lbl span{font-weight:500;letter-spacing:0;text-transform:none;font-size:9px}
+
+.finput,.fselect{
+  width:100%;background:var(--bg2);border:1px solid var(--border);
+  border-radius:9px;padding:9px 12px;
+  font-size:12px;font-weight:500;color:var(--t1);font-family:inherit;
+  outline:none;transition:border-color var(--dur),box-shadow var(--dur);
+}
+.finput:focus,.fselect:focus{
+  border-color:var(--green);box-shadow:0 0 0 3px rgba(0,230,118,.12);
+}
+.finput:disabled,.fselect:disabled{opacity:.35;cursor:not-allowed}
+.fselect{cursor:pointer}
+.fmulti{min-height:42px;padding:5px 8px}
+
+.inp-wrap{position:relative}
+.inp-wrap .finput{padding-left:33px}
+.inp-wrap .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--t3);pointer-events:none}
+
+.filter-footer{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:14px;margin-top:4px;border-top:1px solid var(--border);
+}
+.btn-reset{
+  background:none;border:none;cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;color:var(--green);
+  transition:opacity var(--dur);letter-spacing:.2px;
+}
+.btn-reset:disabled{opacity:.3;cursor:not-allowed}
+.btn-reset:hover:not(:disabled){opacity:.7}
+.btn-reset svg{width:12px;height:12px}
+.sync-txt{font-size:10px;color:var(--t3);font-weight:500}
+.sync-txt span{color:var(--t2);font-weight:700}
+
+/* ═══════════════════════════════════════════════
+   KPI CARDS
+═══════════════════════════════════════════════ */
+.kpi-row{display:grid;gap:14px}
+.kpi-row-3{grid-template-columns:repeat(3,1fr)}
+.kpi-row-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.kpi-row-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.kpi-row-3,.kpi-row-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:420px){.kpi-row-3,.kpi-row-4{grid-template-columns:1fr}}
+
+.kpi{
+  background:var(--panel);border:1px solid var(--border);border-radius:14px;
+  padding:18px 20px;position:relative;overflow:hidden;
+  transition:transform .15s,box-shadow .15s,background var(--dur),border-color var(--dur);
+  cursor:default;
+}
+.kpi:hover{transform:translateY(-2px)}
+/* colored glow corner */
+.kpi::before{
+  content:'';position:absolute;top:-30px;right:-30px;
+  width:90px;height:90px;border-radius:50%;
+  background:var(--kpi-glow,transparent);filter:blur(30px);
+  pointer-events:none;opacity:.6;
+}
+.kpi.g{--kpi-glow:var(--glow-g);border-color:rgba(0,230,118,.18)}
+.kpi.r{--kpi-glow:var(--glow-r);border-color:rgba(255,77,109,.18)}
+.kpi.b{border-color:rgba(79,195,247,.18)}
+.kpi.a{border-color:rgba(255,183,77,.18)}
+
+.kpi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px}
+.kpi-icon{
+  width:38px;height:38px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.kpi-icon svg{width:17px;height:17px}
+.kpi-icon.g{background:var(--greenD);color:var(--green)}
+.kpi-icon.r{background:var(--redD);color:var(--red)}
+.kpi-icon.b{background:var(--blueD);color:var(--blue)}
+.kpi-icon.a{background:var(--amberD);color:var(--amber)}
+.kpi-icon.p{background:var(--purpleD);color:var(--purple)}
+
+.kpi-lbl{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.kpi-val{
+  font-family:'JetBrains Mono',monospace;
+  font-size:21px;font-weight:600;color:var(--t1);line-height:1;
+  letter-spacing:-.5px;
+}
+.kpi-val.g{color:var(--green)}
+.kpi-val.r{color:var(--red)}
+.kpi-val.b{color:var(--blue)}
+.kpi-val.a{color:var(--amber)}
+
+/* Progress bar inside KPI */
+.kpi-bar{margin-top:12px;height:3px;background:var(--bg2);border-radius:2px;overflow:hidden}
+.kpi-bar-fill{height:100%;border-radius:2px;background:var(--kpi-fill,var(--green));transition:width .6s var(--ease)}
+
+/* ═══════════════════════════════════════════════
+   CHART GRID
+═══════════════════════════════════════════════ */
+.chart-grid{display:grid;grid-template-columns:1.8fr 1fr 1fr;gap:16px}
+@media(max-width:1100px){.chart-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.chart-grid{grid-template-columns:1fr}}
+
+.chart-wrap{position:relative;height:220px}
+
+/* Gauge (custom CSS) */
+.gauge-wrap{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:220px;gap:0;
+}
+.gauge-svg{width:180px;height:105px;overflow:visible}
+.gauge-pct{
+  font-family:'JetBrains Mono',monospace;
+  font-size:30px;font-weight:700;
+  fill:var(--t1);
+}
+.gauge-sub{font-size:11px;fill:var(--t3);font-family:'Syne',sans-serif;font-weight:600}
+
+/* Badge pill */
+.badge{
+  font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  padding:3px 8px;border-radius:4px;background:var(--glass);
+  border:1px solid var(--border);color:var(--t3);
+}
+
+/* ═══════════════════════════════════════════════
+   TABLE
+═══════════════════════════════════════════════ */
+.tbl-head{
+  padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border-bottom:1px solid var(--border);flex-wrap:wrap;
+}
+.tbl-head-info h3{font-size:14px;font-weight:800;color:var(--t1)}
+.tbl-head-info p{font-size:10px;color:var(--t3);margin-top:2px;font-weight:500}
+.tbl-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--bg2)}
+th{
+  padding:10px 16px;font-size:9px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--t3);
+  border-bottom:1px solid var(--border);white-space:nowrap;
+}
+td{
+  padding:11px 16px;font-size:12px;font-weight:500;color:var(--t1);
+  border-bottom:1px solid var(--border);
+  transition:background var(--dur);
+}
+tbody tr:hover td{background:var(--glass)}
+tbody tr:last-child td{border-bottom:none}
+
+.td-r{text-align:right}
+.td-c{text-align:center}
+.td-mono{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:-.3px}
+.td-dim{color:var(--t2)}
+
+.lbadge{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;
+  background:var(--bg2);border:1px solid var(--border);color:var(--t2);
+  padding:2px 8px;border-radius:5px;display:inline-block;
+}
+.tbadge{
+  font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  background:var(--glass);border:1px solid var(--border);color:var(--t3);
+  padding:2px 7px;border-radius:4px;
+}
+.ebadge{
+  font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+  padding:3px 10px;border-radius:20px;display:inline-block;
+}
+.ebadge.ok{background:var(--greenD);color:var(--green)}
+.ebadge.pend{background:var(--redD);color:var(--red)}
+
+/* spinner */
+.spin{
+  width:16px;height:16px;border:2px solid var(--border);
+  border-top-color:var(--green);border-radius:50%;
+  animation:_spin .7s linear infinite;display:inline-block;
+}
+@keyframes _spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════════════════════════════════════
+   LOT GRID
+═══════════════════════════════════════════════ */
+.lot-grid{
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  gap:6px;
+}
+@media(max-width:700px){.lot-grid{grid-template-columns:repeat(5,1fr)}}
+@media(max-width:380px){.lot-grid{grid-template-columns:repeat(4,1fr)}}
+
+.lot-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:6px 4px;cursor:pointer;
+  transition:all var(--dur) var(--ease);
+  font-family:'JetBrains Mono',monospace;
+  user-select:none;
+}
+.lot-btn:disabled{opacity:.35;cursor:not-allowed}
+.lot-num{font-size:13px;font-weight:700;color:var(--t1);line-height:1}
+.lot-rom{font-size:8px;font-weight:600;color:var(--t3);margin-top:2px;letter-spacing:.3px;text-transform:uppercase}
+.lot-btn:hover:not(:disabled){border-color:var(--borderB);background:var(--glassB)}
+.lot-btn.active{
+  background:var(--greenD);border-color:var(--green);
+  box-shadow:0 0 10px var(--glow-g);
+}
+.lot-btn.active .lot-num{color:var(--green)}
+.lot-btn.active .lot-rom{color:var(--green);opacity:.7}
+
+[data-theme="dark"] .ico-sun{display:flex}[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}[data-theme="light"] .ico-moon{display:flex}
+
+/* ═══════════════════════════════════════════════
+   PRINT  
+═══════════════════════════════════════════════ */
+@media print{
+  body{background:#fff!important;color:#000!important}
+  header,.no-print{display:none!important}
+  main{padding:0!important;max-width:100%!important}
+  .panel{border:1px solid #ccc!important;box-shadow:none!important;page-break-inside:avoid;background:#fff!important}
+  td,th{color:#000!important}
+  .kpi,.chart-grid{display:none!important}
+  canvas{display:none!important}
+}
+</style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
+<body>
 
-    <header class="bg-slate-950 text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-emerald-500 p-2 rounded-lg text-slate-950">
-                    <i data-lucide="building-2" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold tracking-tight">Consorcio Barrio Euskadi I </h1>
-                    <p class="text-xs text-slate-400">Panel de Control Financiero y Gestión de Expensas en Tiempo Real</p>
-                </div>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <button onclick="window.print()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700 transition shadow-sm">
-                    <i data-lucide="printer" class="w-4 h-4 text-emerald-400"></i> Imprimir / PDF
-                </button>
-                <div id="statusConnection" class="flex items-center gap-2 text-sm bg-slate-900 px-3 py-1.5 rounded-full text-slate-300">
-                    <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" id="statusDot"></span>
-                    <span id="statusText">Conectando a Google Sheets...</span>
-                </div>
-            </div>
-        </div>
-    </header>
+<!-- ════════════════ HEADER ════════════════ -->
+<header>
+<div class="hdr">
+  <div class="logo">
+    <div class="logo-gem">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>
+    </div>
+    <div>
+      <div class="logo-name">Barrio Privado Euskadi I — Pocito</div>
+      <div class="logo-sub">Panel Financiero · Tiempo Real</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <button class="btn btn-outline no-print" onclick="window.print()">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+      Imprimir / PDF
+    </button>
+    <button class="btn btn-circle no-print" onclick="toggleTheme()" title="Cambiar tema">
+      <span class="ico-sun"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></span>
+      <span class="ico-moon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
+    </button>
+    <div class="status-pill" id="statusConnection">
+      <span class="sdot pulse" id="statusDot"></span>
+      <span id="statusText">Conectando...</span>
+    </div>
+  </div>
+</div>
+</header>
 
-    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+<!-- ════════════════ MAIN ════════════════ -->
+<main>
 
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-4 no-print">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Filtrar por Estado</label>
-                    <select id="filterEstado" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
-                        <option value="TODOS">Todos los Estados</option>
-                        <option value="PENDIENTE">Pendientes</option>
-                        <option value="PAGADO">Pagados</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Buscar Propietario o Lote</label>
-                    <div class="relative">
-                        <input id="searchQuery" type="text" placeholder="Ej: Lote I, Gonzalez..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
-                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-3"></i>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1 flex justify-between">
-                        <span>Filtrar por Período (Multiselección)</span>
-                        <span class="text-[10px] text-slate-400 font-normal">Ctrl/Cmd para elegir varios</span>
-                    </label>
-                    <select id="filterMeses" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[40px]" multiple disabled>
-                        </select>
-                </div>
-            </div>
-            <div class="flex justify-between items-center text-xs border-t border-slate-50 pt-3">
-                <button id="btnResetFilters" class="text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1" disabled>
-                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Restablecer Filtros
-                </button>
-                <div class="text-slate-400 font-medium">
-                    Última sincronización: <span id="fechaActualizacion" class="font-semibold text-slate-600">-</span>
-                </div>
-            </div>
-        </section>
-
+  <!-- FILTROS -->
+  <div class="no-print">
+    <div class="slabel">
+      <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      Filtros de búsqueda
+    </div>
+    <div class="panel panel-pad">
+      <!-- Fila superior: los 3 filtros alineados -->
+      <div class="filter-grid">
         <div>
-            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 no-print">Métricas según filtros aplicados</div>
-            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-slate-400">Total Recaudado (Filtro)</p>
-                        <h3 class="text-xl font-bold text-slate-900" id="kpiRecaudado">$0,00</h3>
-                    </div>
-                    <div class="bg-emerald-50 p-2.5 rounded-xl text-emerald-600"><i data-lucide="trending-up" class="w-5 h-5"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-slate-400">Deuda Pendiente (Filtro)</p>
-                        <h3 class="text-xl font-bold text-rose-600" id="kpiDeuda">$0,00</h3>
-                    </div>
-                    <div class="bg-rose-50 p-2.5 rounded-xl text-rose-600"><i data-lucide="alert-circle" class="w-5 h-5"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between sm:col-span-2 lg:col-span-1">
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-slate-400">Registros Listados</p>
-                        <h3 class="text-xl font-bold text-slate-900" id="kpiRegistros">0</h3>
-                    </div>
-                    <div class="bg-blue-50 p-2.5 rounded-xl text-blue-600"><i data-lucide="database" class="w-5 h-5"></i></div>
-                </div>
-            </section>
+          <div class="field-lbl">Estado</div>
+          <select id="filterEstado" class="fselect" disabled>
+            <option value="TODOS">Todos</option>
+            <option value="PENDIENTE">Pendientes</option>
+            <option value="PAGADO">Pagados</option>
+          </select>
         </div>
-
         <div>
-            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i> 
-                Métricas Consolidadas del Mes Vigente: <span id="lblMesCorriente" class="text-slate-600 normal-case ml-1 font-semibold">-</span>
-            </div>
-            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-emerald-500">
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-slate-400">Cobros Mes Corriente</p>
-                        <h3 class="text-xl font-bold text-emerald-600" id="kpiCobrosMes">$0,00</h3>
-                    </div>
-                    <div class="bg-slate-50 p-2.5 rounded-xl text-slate-600"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-rose-500">
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-slate-400">Deuda Mes Corriente</p>
-                        <h3 class="text-xl font-bold text-rose-600" id="kpiDeudaMes">$0,00</h3>
-                    </div>
-                    <div class="bg-slate-50 p-2.5 rounded-xl text-slate-600"><i data-lucide="alert-triangle" class="w-5 h-5"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-blue-500">
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-slate-400">Efectividad Cobro</p>
-                        <h3 class="text-xl font-bold text-slate-900" id="kpiPorcentajeMes">0%</h3>
-                    </div>
-                    <div class="bg-blue-50 p-2.5 rounded-xl text-blue-600"><i data-lucide="pie-chart" class="w-5 h-5"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-amber-500">
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-slate-400">Lotes en Mora</p>
-                        <h3 class="text-xl font-bold text-slate-900" id="kpiMoraMes">0</h3>
-                    </div>
-                    <div class="bg-amber-50 p-2.5 rounded-xl text-amber-600"><i data-lucide="users" class="w-5 h-5"></i></div>
-                </div>
-            </section>
+          <div class="field-lbl">Buscar propietario</div>
+          <div class="inp-wrap">
+            <svg class="ico" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="searchQuery" type="text" placeholder="Nombre del propietario..." class="finput" disabled>
+          </div>
         </div>
+        <div>
+          <div class="field-lbl">Período <span>Ctrl/Cmd para múltiples</span></div>
+          <select id="filterMeses" class="fselect fmulti" multiple disabled></select>
+        </div>
+      </div>
 
-        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 lg:col-span-2">
-                <div class="flex justify-between items-center mb-4">
-                    <h4 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-500"></i> Evolución Financiera (Últimos 12 Meses)
-                    </h4>
-                    <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-medium">Excluye SALDOS</span>
-                </div>
-                <div class="h-64 relative">
-                    <canvas id="chartFinanzas"></canvas>
-                </div>
+      <!-- Fila inferior: grilla de lotes -->
+      <div style="margin-top:16px">
+        <div class="field-lbl" style="margin-bottom:8px">
+          Filtrar por Lote
+          <span id="loteSel" style="margin-left:8px;color:var(--green)"></span>
+        </div>
+        <div class="lot-grid" id="lotGrid">
+          <!-- generado por JS -->
+        </div>
+      </div>
+
+      <div class="filter-footer">
+        <button id="btnResetFilters" class="btn-reset" disabled>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Restablecer
+        </button>
+        <div class="sync-txt">Actualizado: <span id="fechaActualizacion">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs FILTRO -->
+  <div>
+    <div class="slabel no-print">
+      <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      Métricas — vista filtrada
+    </div>
+    <div class="kpi-row kpi-row-3">
+      <div class="kpi g">
+        <div class="kpi-top">
+          <div><div class="kpi-lbl">Total Recaudado</div><div class="kpi-val g" id="kpiRecaudado">$ —</div></div>
+          <div class="kpi-icon g"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+        </div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" id="barRecaudado" style="width:0%;--kpi-fill:var(--green)"></div></div>
+      </div>
+      <div class="kpi r">
+        <div class="kpi-top">
+          <div><div class="kpi-lbl">Deuda Pendiente</div><div class="kpi-val r" id="kpiDeuda">$ —</div></div>
+          <div class="kpi-icon r"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></div>
+        </div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" id="barDeuda" style="width:0%;--kpi-fill:var(--red)"></div></div>
+      </div>
+      <div class="kpi b">
+        <div class="kpi-top">
+          <div><div class="kpi-lbl">Registros Listados</div><div class="kpi-val b" id="kpiRegistros">0</div></div>
+          <div class="kpi-icon b"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
+        </div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" id="barRegistros" style="width:0%;--kpi-fill:var(--blue)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs MES CORRIENTE -->
+  <div>
+    <div class="slabel">
+      <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+      Mes vigente — <span id="lblMesCorriente" style="color:var(--t2);font-weight:700;letter-spacing:0;text-transform:none;font-size:10px">—</span>
+    </div>
+    <div class="kpi-row kpi-row-3">
+      <div class="kpi g">
+        <div class="kpi-top">
+          <div><div class="kpi-lbl">Cobros Corriente</div><div class="kpi-val g" id="kpiCobrosMes">$ —</div></div>
+          <div class="kpi-icon g"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        </div>
+      </div>
+      <div class="kpi r">
+        <div class="kpi-top">
+          <div><div class="kpi-lbl">Deuda Corriente</div><div class="kpi-val r" id="kpiDeudaMes">$ —</div></div>
+          <div class="kpi-icon r"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg></div>
+        </div>
+      </div>
+      <div class="kpi a">
+        <div class="kpi-top">
+          <div><div class="kpi-lbl">Lotes en Mora</div><div class="kpi-val a" id="kpiMoraMes">0</div></div>
+          <div class="kpi-icon a"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRÁFICOS -->
+  <div>
+    <div class="slabel no-print">
+      <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+      Análisis visual
+    </div>
+    <div class="chart-grid">
+      <!-- Bar chart -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <svg fill="none" viewBox="0 0 24 24" stroke="var(--green)" stroke-width="2.2"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+            Evolución Financiera · 12 meses
+          </div>
+          <span class="badge">Excluye SALDOS</span>
+        </div>
+        <div style="padding:16px 18px 18px"><div class="chart-wrap"><canvas id="chartFinanzas"></canvas></div></div>
+      </div>
+      <!-- Gauge -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <svg fill="none" viewBox="0 0 24 24" stroke="var(--blue)" stroke-width="2.2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            Efectividad de Cobro
+          </div>
+        </div>
+        <div class="gauge-wrap">
+          <svg class="gauge-svg" viewBox="0 0 180 100" id="gaugeSvg">
+            <defs>
+              <linearGradient id="gGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#f85149"/>
+                <stop offset="50%" stop-color="#ffb74d"/>
+                <stop offset="100%" stop-color="#00e676"/>
+              </linearGradient>
+            </defs>
+            <!-- track -->
+            <path d="M 15 90 A 75 75 0 0 1 165 90" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10" stroke-linecap="round"/>
+            <!-- fill -->
+            <path id="gaugeArc" d="M 15 90 A 75 75 0 0 1 165 90" fill="none" stroke="url(#gGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="235.6" stroke-dashoffset="235.6" style="transition:stroke-dashoffset 1s var(--ease)"/>
+            <!-- center text -->
+            <text id="gaugePct" class="gauge-pct" x="90" y="78" text-anchor="middle">0%</text>
+            <text class="gauge-sub" x="90" y="95" text-anchor="middle">efectividad</text>
+          </svg>
+          <!-- legend -->
+          <div style="display:flex;gap:20px;margin-top:4px">
+            <div style="text-align:center">
+              <div style="font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Pagados</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--green)" id="gaugePagados">0</div>
             </div>
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
-                <h4 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                    <i data-lucide="check-square" class="w-4 h-4 text-emerald-500"></i> Cumplimiento del Mes Corriente
-                </h4>
-                <div class="h-64 relative flex items-center justify-center">
-                    <canvas id="chartEstados"></canvas>
-                </div>
+            <div style="text-align:center">
+              <div style="font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Pendientes</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--red)" id="gaugePendientes">0</div>
             </div>
-        </section>
+          </div>
+        </div>
+      </div>
+      <!-- Doughnut -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <svg fill="none" viewBox="0 0 24 24" stroke="var(--amber)" stroke-width="2.2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            Distribución del Mes
+          </div>
+        </div>
+        <div style="padding:12px 18px 18px"><div class="chart-wrap"><canvas id="chartEstados"></canvas></div></div>
+      </div>
+    </div>
+  </div>
 
-        <section class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-            <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h3 class="font-bold text-lg text-slate-900">Registros de la Base de Datos</h3>
-                    <p class="text-xs text-slate-500">Lectura directa y estructurada desde la planilla centralizada</p>
-                </div>
+  <!-- TABLA -->
+  <div class="panel">
+    <div class="tbl-head">
+      <div class="tbl-head-info">
+        <h3>Registros de Base de Datos</h3>
+        <p>Lectura directa y estructurada desde la planilla centralizada</p>
+      </div>
+      <div class="tbl-actions">
+        <button class="btn btn-danger no-print" id="btnImprimirDeuda" onclick="imprimirDeuda()" disabled>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+          Imprimir Deuda
+        </button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Lote</th><th>Propietario</th><th>Período</th><th>Tipo</th>
+          <th class="td-r">Monto Base</th><th class="td-r">Recargo</th>
+          <th class="td-r">Total</th><th class="td-c">Estado</th>
+        </tr></thead>
+        <tbody id="tablaCuerpo">
+          <tr><td colspan="8" style="text-align:center;padding:44px;color:var(--t3)">
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px">
+              <span class="spin"></span>Esperando sincronización de datos...
             </div>
-            
-            <div class="overflow-x-auto w-full">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 text-slate-600 text-xs font-semibold uppercase tracking-wider border-b border-gray-100">
-                            <th class="p-4">Lote</th>
-                            <th class="p-4">Propietario</th>
-                            <th class="p-4">Período</th>
-                            <th class="p-4">Tipo</th>
-                            <th class="p-4 text-right">Monto Base</th>
-                            <th class="p-4 text-right">Recargo</th>
-                            <th class="p-4 text-right">Total</th>
-                            <th class="p-4 text-center">Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaCuerpo" class="divide-y divide-slate-100 text-sm">
-                        <tr>
-                            <td colspan="8" class="p-8 text-center text-slate-400 font-medium">
-                                <div class="flex items-center justify-center gap-2">
-                                    <span class="w-4 h-4 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin"></span>
-                                    Esperando sincronización de datos...
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </main>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-    <script>
-        const SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTeRTnTG2O69xGBaDShVvATBv8s9I6w0N2O0Zd1A7RPxMcM8I5w2kksmcMTtMO742WTbJjY28jsp28p/pub?gid=0&single=true&output=csv";
+</main>
 
-        let baseDeDatosOriginal = [];
-        let periodoVigenteGlobal = "";
-        let chartFinanzasInstance = null;
-        let chartEstadosInstance = null;
+<!-- ════════════════ SCRIPT ════════════════ -->
+<script>
+/* ─ Theme ─────────────────────────────────────── */
+function toggleTheme(){
+  const h=document.documentElement, n=h.getAttribute('data-theme')==='dark'?'light':'dark';
+  h.setAttribute('data-theme',n);
+  localStorage.setItem('euskadi-theme',n);
+  if(chartFinanzasInstance)refreschaColores();
+  if(chartEstadosInstance)refreschaColores();
+}
+(function(){
+  const s=localStorage.getItem('euskadi-theme');
+  if(s)document.documentElement.setAttribute('data-theme',s);
+})();
+function isDark(){return document.documentElement.getAttribute('data-theme')==='dark'}
+function chartColors(){
+  return{
+    text: isDark()?'#8899b0':'#4a5768',
+    grid: isDark()?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)',
+    border: isDark()?'#111827':'#ffffff'
+  }
+}
+function refreschaColores(){
+  const c=chartColors();
+  if(chartFinanzasInstance){
+    chartFinanzasInstance.options.scales.y.ticks.color=c.text;
+    chartFinanzasInstance.options.scales.x.ticks.color=c.text;
+    chartFinanzasInstance.options.scales.y.grid.color=c.grid;
+    chartFinanzasInstance.options.plugins.legend.labels.color=c.text;
+    chartFinanzasInstance.update();
+  }
+  if(chartEstadosInstance){
+    chartEstadosInstance.data.datasets[0].borderColor=c.border;
+    chartEstadosInstance.options.plugins.legend.labels.color=c.text;
+    chartEstadosInstance.update();
+  }
+}
 
-        const formatMoneda = (val) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val);
+/* ─ Lotes map ──────────────────────────────────── */
+const LOTES=[
+  {num:'01',rom:'I'},{num:'02',rom:'II'},{num:'03',rom:'III'},{num:'04',rom:'IV'},
+  {num:'05',rom:'V'},{num:'06',rom:'VI'},{num:'07',rom:'VII'},{num:'08',rom:'VIII'},
+  {num:'09',rom:'IX'},{num:'10',rom:'X'},{num:'11',rom:'XI'},{num:'12',rom:'XII'},
+  {num:'13',rom:'XIII'},{num:'14',rom:'XIV'},{num:'15',rom:'XV'},{num:'16',rom:'XVI'},
+  {num:'17',rom:'XVII'},{num:'18',rom:'XVIII'},{num:'19',rom:'XIX'},{num:'20',rom:'XX'}
+];
+let lotesSeleccionados=new Set();
 
-        function limpiarNumero(valor) {
-            if (!valor) return 0;
-            let str = valor.toString().replace(/[^0-9,\-]/g, '').replace(',', '.');
-            let num = parseFloat(str);
-            return isNaN(num) ? 0 : num;
-        }
+function buildLotGrid(){
+  const grid=document.getElementById('lotGrid');
+  grid.innerHTML='';
+  LOTES.forEach(l=>{
+    const btn=document.createElement('button');
+    btn.className='lot-btn';
+    btn.dataset.lote=l.num;
+    btn.disabled=true;
+    btn.innerHTML=`<span class="lot-num">${l.num}</span><span class="lot-rom">${l.rom}</span>`;
+    btn.addEventListener('click',()=>{
+      if(btn.disabled)return;
+      if(lotesSeleccionados.has(l.num)){
+        lotesSeleccionados.delete(l.num);
+        btn.classList.remove('active');
+      } else {
+        lotesSeleccionados.add(l.num);
+        btn.classList.add('active');
+      }
+      actualizarLoteLabel();
+      aplicarFiltros();
+    });
+    grid.appendChild(btn);
+  });
+}
 
-        async function conectarYFetchData() {
-            try {
-                const response = await fetch(SHEETS_CSV_URL);
-                if (!response.ok) throw new Error("No se pudo conectar al endpoint.");
-                const csvTexto = await response.text();
-                
-                Papa.parse(csvTexto, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        mapearYProcesarDatos(results.data);
-                    },
-                    error: function() {
-                        mostrarError("Error al interpretar la estructura del archivo.");
-                    }
-                });
-            } catch (error) {
-                console.error(error);
-                mostrarError("Error de conexión con la base de datos.");
-            }
-        }
+function actualizarLoteLabel(){
+  const lbl=document.getElementById('loteSel');
+  if(lotesSeleccionados.size===0){lbl.innerText='';return}
+  const nums=[...lotesSeleccionados].sort().join(', ');
+  lbl.innerText=`· Lotes: ${nums}`;
+}
 
-        function mapearYProcesarDatos(filas) {
-            baseDeDatosOriginal = filas.map(fila => {
-                const getVal = (keys) => {
-                    const foundKey = Object.keys(fila).find(k => keys.includes(k.trim().toUpperCase()));
-                    return foundKey ? fila[foundKey] : '';
-                };
+function enableLotGrid(en){
+  document.querySelectorAll('.lot-btn').forEach(b=>b.disabled=!en);
+}
 
-                return {
-                    idLote: getVal(['IDLOTE', 'LOTE', 'ID_LOTE']),
-                    propietario: getVal(['PROPIETARIO', 'NOMBRE', 'TITULAR']) || 'SIN PROPIETARIO',
-                    mes: (getVal(['MES', 'PERIODO', 'PERÍODO']) || 'S/D').trim().toLowerCase(),
-                    tipo: (getVal(['TIPO', 'CONCEPTO']) || 'EXPENSAS MES').trim().toUpperCase(),
-                    subtotal: limpiarNumero(getVal(['SUBTOTAL', 'MONTOEXPENSAS', 'MONTO_BASE'])),
-                    recargo: limpiarNumero(getVal(['RECARGO', 'TASARECARGO', 'INTERESES'])),
-                    total: limpiarNumero(getVal(['TOTAL', 'MONTO_TOTAL'])),
-                    estado: (getVal(['ESTADO', 'CONDICION']) || 'PENDIENTE').trim().toUpperCase()
-                };
-            }).filter(item => item.idLote !== '');
+/* ─ CSV Connection ────────────────────────────── */
+const SHEETS_CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vTeRTnTG2O69xGBaDShVvATBv8s9I6w0N2O0Zd1A7RPxMcM8I5w2kksmcMTtMO742WTbJjY28jsp28p/pub?gid=0&single=true&output=csv";
 
-            // Determinar automáticamente cuál es el mes más reciente de la planilla (Mes Corriente)
-            const todosLosMeses = [...new Set(baseDeDatosOriginal.map(d => d.mes))].filter(m => m !== 's/d');
-            // Orden simple: asumimos que el último en aparecer en la base de datos es el corriente o más activo
-            periodoVigenteGlobal = todosLosMeses[todosLosMeses.length - 1] || "S/D";
+let baseDeDatosOriginal=[], periodoVigenteGlobal="";
+let chartFinanzasInstance=null, chartEstadosInstance=null;
+let datosFiltradosActuales=[];
 
-            document.getElementById('lblMesCorriente').innerText = periodoVigenteGlobal;
+const fmn=(v)=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS'}).format(v);
 
-            // Rellenar el filtro multiselección de meses
-            const selectMeses = document.getElementById('filterMeses');
-            selectMeses.innerHTML = '';
-            todosLosMeses.forEach(mes => {
-                const opt = document.createElement('option');
-                opt.value = mes;
-                opt.innerText = mes.charAt(0).toUpperCase() + mes.slice(1);
-                selectMeses.appendChild(opt);
-            });
+function limpiarNumero(v){
+  if(!v)return 0;
+  const s=v.toString().replace(/[^0-9,\-]/g,'').replace(',','.');
+  const n=parseFloat(s); return isNaN(n)?0:n;
+}
 
-            // Activar inputs de la interfaz
-            document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-emerald-500 rounded-full";
-            document.getElementById('statusText').innerText = "Base de Datos Sincronizada";
-            document.getElementById('filterEstado').disabled = false;
-            document.getElementById('searchQuery').disabled = false;
-            document.getElementById('filterMeses').disabled = false;
-            document.getElementById('btnResetFilters').disabled = false;
-            document.getElementById('fechaActualizacion').innerText = new Date().toLocaleDateString('es-AR', { hour: '2-digit', minute:'2-digit', second: '2-digit' });
+async function conectarYFetchData(){
+  try{
+    const r=await fetch(SHEETS_CSV_URL);
+    if(!r.ok)throw new Error();
+    const txt=await r.text();
+    Papa.parse(txt,{
+      header:true,skipEmptyLines:true,
+      complete:res=>mapearYProcesarDatos(res.data),
+      error:()=>mostrarError("Error al interpretar la estructura del archivo.")
+    });
+  }catch(e){mostrarError("Error de conexión con la base de datos.")}
+}
 
-            // Renderizar datos globales iniciales
-            procesarDashboard(baseDeDatosOriginal);
+function mapearYProcesarDatos(filas){
+  baseDeDatosOriginal=filas.map(f=>{
+    const gv=keys=>{const k=Object.keys(f).find(k=>keys.includes(k.trim().toUpperCase()));return k?f[k]:''};
+    return{
+      idLote:gv(['IDLOTE','LOTE','ID_LOTE']),
+      propietario:gv(['PROPIETARIO','NOMBRE','TITULAR'])||'SIN PROPIETARIO',
+      mes:(gv(['MES','PERIODO','PERÍODO'])||'S/D').trim().toLowerCase(),
+      tipo:(gv(['TIPO','CONCEPTO'])||'EXPENSAS MES').trim().toUpperCase(),
+      subtotal:limpiarNumero(gv(['SUBTOTAL','MONTOEXPENSAS','MONTO_BASE'])),
+      recargo:limpiarNumero(gv(['RECARGO','TASARECARGO','INTERESES'])),
+      total:limpiarNumero(gv(['TOTAL','MONTO_TOTAL'])),
+      estado:(gv(['ESTADO','CONDICION'])||'PENDIENTE').trim().toUpperCase()
+    };
+  }).filter(i=>i.idLote!=='');
 
-            // Listeners
-            document.getElementById('filterEstado').addEventListener('change', aplicarFiltros);
-            document.getElementById('searchQuery').addEventListener('input', aplicarFiltros);
-            document.getElementById('filterMeses').addEventListener('change', aplicarFiltros);
-            document.getElementById('btnResetFilters').addEventListener('click', resetearFiltros);
-        }
+  const meses=[...new Set(baseDeDatosOriginal.map(d=>d.mes))].filter(m=>m!=='s/d');
+  periodoVigenteGlobal=meses[meses.length-1]||"S/D";
 
-        function resetearFiltros() {
-            document.getElementById('filterEstado').value = 'TODOS';
-            document.getElementById('searchQuery').value = '';
-            const selectMeses = document.getElementById('filterMeses');
-            for (let i = 0; i < selectMeses.options.length; i++) {
-                selectMeses.options[i].selected = false;
-            }
-            procesarDashboard(baseDeDatosOriginal);
-        }
+  const lbl=document.getElementById('lblMesCorriente');
+  lbl.innerText=periodoVigenteGlobal.charAt(0).toUpperCase()+periodoVigenteGlobal.slice(1);
 
-        function aplicarFiltros() {
-            const estadoSelected = document.getElementById('filterEstado').value;
-            const search = document.getElementById('searchQuery').value.toLowerCase();
-            
-            // Obtener todos los meses seleccionados en el select multiple
-            const selectMeses = document.getElementById('filterMeses');
-            const mesesSeleccionados = Array.from(selectMeses.selectedOptions).map(option => option.value);
+  const sel=document.getElementById('filterMeses');
+  sel.innerHTML='';
+  meses.forEach(m=>{const o=document.createElement('option');o.value=m;o.innerText=m.charAt(0).toUpperCase()+m.slice(1);sel.appendChild(o)});
 
-            const datosFiltrados = baseDeDatosOriginal.filter(item => {
-                const matchesEstado = (estadoSelected === 'TODOS' || item.estado === estadoSelected);
-                const matchesQuery = item.propietario.toLowerCase().includes(search) || item.idLote.toLowerCase().includes(search);
-                const matchesMes = (mesesSeleccionados.length === 0 || mesesSeleccionados.includes(item.mes));
-                return matchesEstado && matchesQuery && matchesMes;
-            });
+  document.getElementById('statusDot').className='sdot ok';
+  document.getElementById('statusText').innerText='Sincronizado';
+  ['filterEstado','searchQuery','filterMeses','btnResetFilters','btnImprimirDeuda'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.disabled=false;
+  });
+  enableLotGrid(true);
+  document.getElementById('fechaActualizacion').innerText=new Date().toLocaleDateString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
-            procesarDashboard(datosFiltrados);
-        }
+  procesarDashboard(baseDeDatosOriginal);
 
-        function procesarDashboard(datosFiltrados) {
-            // 1. Calcular métricas para el grupo filtrado (Fichas superiores)
-            let totalRecaudadoFiltrado = 0;
-            let totalDeudaFiltrado = 0;
+  document.getElementById('filterEstado').addEventListener('change',aplicarFiltros);
+  document.getElementById('searchQuery').addEventListener('input',aplicarFiltros);
+  document.getElementById('filterMeses').addEventListener('change',aplicarFiltros);
+  document.getElementById('btnResetFilters').addEventListener('click',resetearFiltros);
+}
 
-            datosFiltrados.forEach(item => {
-                const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
-                if(item.estado === 'PAGADO' || item.estado === 'COBRADO') {
-                    totalRecaudadoFiltrado += finalTotal;
-                } else {
-                    totalDeudaFiltrado += finalTotal;
-                }
-            });
+function resetearFiltros(){
+  document.getElementById('filterEstado').value='TODOS';
+  document.getElementById('searchQuery').value='';
+  const s=document.getElementById('filterMeses');
+  for(let i=0;i<s.options.length;i++)s.options[i].selected=false;
+  lotesSeleccionados.clear();
+  document.querySelectorAll('.lot-btn').forEach(b=>b.classList.remove('active'));
+  actualizarLoteLabel();
+  procesarDashboard(baseDeDatosOriginal);
+}
 
-            document.getElementById('kpiRecaudado').innerText = formatMoneda(totalRecaudadoFiltrado);
-            document.getElementById('kpiDeuda').innerText = formatMoneda(totalDeudaFiltrado);
-            document.getElementById('kpiRegistros').innerText = datosFiltrados.length;
+function aplicarFiltros(){
+  const est=document.getElementById('filterEstado').value;
+  const q=document.getElementById('searchQuery').value.toLowerCase();
+  const sm=document.getElementById('filterMeses');
+  const mSel=Array.from(sm.selectedOptions).map(o=>o.value);
+  const df=baseDeDatosOriginal.filter(i=>{
+    const mE=(est==='TODOS'||i.estado===est);
+    const mQ=q===''||(i.propietario.toLowerCase().includes(q)||i.idLote.toLowerCase().includes(q));
+    const mM=(mSel.length===0||mSel.includes(i.mes));
+    // Filtro por lote: comparar idLote con los números seleccionados
+    const mL=lotesSeleccionados.size===0||[...lotesSeleccionados].some(n=>{
+      const pad=n; // "01","02"...
+      const loteVal=i.idLote.toString().trim();
+      // coincide si el idLote es el número (con o sin cero) o el romano
+      const loteEntry=LOTES.find(l=>l.num===pad);
+      return loteVal===pad||loteVal===String(parseInt(pad))||
+             (loteEntry&&loteVal.toUpperCase()===loteEntry.rom);
+    });
+    return mE&&mQ&&mM&&mL;
+  });
+  procesarDashboard(df);
+}
 
-            // 2. Calcular métricas exclusivas del Mes Corriente (No afectadas por filtros de la UI)
-            let cobrosMesCorriente = 0;
-            let deudaMesCorriente = 0;
-            let lotesEnMoraMesCorriente = new Set();
+function procesarDashboard(df){
+  datosFiltradosActuales=df;
 
-            baseDeDatosOriginal.forEach(item => {
-                if (item.mes === periodoVigenteGlobal) {
-                    const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
-                    if (item.estado === 'PAGADO' || item.estado === 'COBRADO') {
-                        cobrosMesCorriente += finalTotal;
-                    } else {
-                        deudaMesCorriente += finalTotal;
-                        lotesEnMoraMesCorriente.add(item.idLote);
-                    }
-                }
-            });
+  let rec=0,deu=0;
+  df.forEach(i=>{
+    const t=i.total>0?i.total:(i.subtotal+i.recargo);
+    if(i.estado==='PAGADO'||i.estado==='COBRADO')rec+=t; else deu+=t;
+  });
 
-            const totalFacturadoMes = cobrosMesCorriente + deudaMesCorriente;
-            const porcentajeEfectividadMes = totalFacturadoMes > 0 ? ((cobrosMesCorriente / totalFacturadoMes) * 100).toFixed(1) : 0;
+  const total=rec+deu;
+  document.getElementById('kpiRecaudado').innerText=fmn(rec);
+  document.getElementById('kpiDeuda').innerText=fmn(deu);
+  document.getElementById('kpiRegistros').innerText=df.length;
+  document.getElementById('barRecaudado').style.width=(total>0?Math.min(100,(rec/total)*100):0)+'%';
+  document.getElementById('barDeuda').style.width=(total>0?Math.min(100,(deu/total)*100):0)+'%';
+  document.getElementById('barRegistros').style.width=Math.min(100,(df.length/Math.max(baseDeDatosOriginal.length,1))*100)+'%';
 
-            document.getElementById('kpiCobrosMes').innerText = formatMoneda(cobrosMesCorriente);
-            document.getElementById('kpiDeudaMes').innerText = formatMoneda(deudaMesCorriente);
-            document.getElementById('kpiPorcentajeMes').innerText = `${porcentajeEfectividadMes}%`;
-            document.getElementById('kpiMoraMes').innerText = lotesEnMoraMesCorriente.size;
+  let cobM=0,deuM=0;const moraSet=new Set();
+  baseDeDatosOriginal.forEach(i=>{
+    if(i.mes===periodoVigenteGlobal){
+      const t=i.total>0?i.total:(i.subtotal+i.recargo);
+      if(i.estado==='PAGADO'||i.estado==='COBRADO')cobM+=t;
+      else{deuM+=t;moraSet.add(i.idLote)}
+    }
+  });
+  const totM=cobM+deuM;
+  const pct=totM>0?((cobM/totM)*100).toFixed(1):0;
+  document.getElementById('kpiCobrosMes').innerText=fmn(cobM);
+  document.getElementById('kpiDeudaMes').innerText=fmn(deuM);
+  document.getElementById('kpiPorcentajeMes').innerText=`${pct}%`;
+  document.getElementById('kpiMoraMes').innerText=moraSet.size;
 
-            // 3. Renderizar Tabla del Bloque de Base de Datos
-            const tbody = document.getElementById('tablaCuerpo');
-            tbody.innerHTML = '';
-            
-            if(datosFiltrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron registros bajo los filtros aplicados</td></tr>`;
-            } else {
-                datosFiltrados.forEach(item => {
-                    const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
-                    const isPagado = item.estado === 'PAGADO' || item.estado === 'COBRADO';
-                    
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-50 transition-colors";
-                    tr.innerHTML = `
-                        <td class="p-4 font-semibold text-slate-700">Lote ${item.idLote}</td>
-                        <td class="p-4 font-medium text-slate-950">${item.propietario}</td>
-                        <td class="p-4 text-slate-500 capitalize">${item.mes}</td>
-                        <td class="p-4 text-xs font-semibold"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${item.tipo}</span></td>
-                        <td class="p-4 text-right text-slate-600">${formatMoneda(item.subtotal)}</td>
-                        <td class="p-4 text-right text-amber-600">${formatMoneda(item.recargo)}</td>
-                        <td class="p-4 text-right font-semibold text-slate-900">${formatMoneda(finalTotal)}</td>
-                        <td class="p-4 text-center">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-bold shadow-sm tracking-wide ${isPagado ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-                                ${item.estado}
-                            </span>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
+  // Gauge SVG
+  const arc=document.getElementById('gaugeArc');
+  const arcLen=235.6;
+  const offset=arcLen-(arcLen*(pct/100));
+  arc.style.strokeDashoffset=offset;
+  document.getElementById('gaugePct').textContent=`${pct}%`;
 
-            // 4. Refrescar los gráficos con las restricciones estructurales solicitadas
-            actualizarGraficos();
-        }
+  // Gauge legend (mes corriente)
+  const dmc=baseDeDatosOriginal.filter(d=>d.mes===periodoVigenteGlobal);
+  const cPag=dmc.filter(d=>d.estado==='PAGADO'||d.estado==='COBRADO').length;
+  const cPen=dmc.filter(d=>d.estado==='PENDIENTE').length;
+  document.getElementById('gaugePagados').innerText=cPag;
+  document.getElementById('gaugePendientes').innerText=cPen;
 
-        function actualizarGraficos() {
-            // --- GRÁFICO 1: EVOLUCIÓN FINANCIERA (ÚLTIMOS 12 MESES - EXCLUYE "SALDO") ---
-            // Filtrar movimientos de tipo SALDO de la base completa para este cálculo
-            const datosSinSaldo = baseDeDatosOriginal.filter(d => d.tipo !== 'SALDO' && d.mes !== 's/d');
-            
-            // Obtener los meses únicos y limitar a los últimos 12
-            let mesesHistoricos = [...new Set(datosSinSaldo.map(d => d.mes))];
-            if (mesesHistoricos.length > 12) {
-                mesesHistoricos = mesesHistoricos.slice(-12);
-            }
+  // Tabla
+  const tbody=document.getElementById('tablaCuerpo');
+  tbody.innerHTML='';
+  if(df.length===0){
+    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:44px;color:var(--t3)">Sin registros con los filtros aplicados</td></tr>`;
+  } else {
+    df.forEach(i=>{
+      const ft=i.total>0?i.total:(i.subtotal+i.recargo);
+      const ok=i.estado==='PAGADO'||i.estado==='COBRADO';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><span class="lbadge">Lote ${i.idLote}</span></td>
+        <td style="font-weight:600">${i.propietario}</td>
+        <td class="td-dim" style="text-transform:capitalize">${i.mes}</td>
+        <td><span class="tbadge">${i.tipo}</span></td>
+        <td class="td-r td-mono td-dim">${fmn(i.subtotal)}</td>
+        <td class="td-r td-mono" style="color:var(--amber)">${fmn(i.recargo)}</td>
+        <td class="td-r td-mono" style="font-weight:700">${fmn(ft)}</td>
+        <td class="td-c"><span class="ebadge ${ok?'ok':'pend'}">${i.estado}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
 
-            const recaudadoPorMes = mesesHistoricos.map(m => 
-                datosSinSaldo.filter(d => d.mes === m && (d.estado === 'PAGADO' || d.estado === 'COBRADO'))
-                             .reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
-            );
-            
-            const deudaPorMes = mesesHistoricos.map(m => 
-                datosSinSaldo.filter(d => d.mes === m && d.estado === 'PENDIENTE')
-                             .reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
-            );
+  actualizarGraficos();
+}
 
-            // --- GRÁFICO 2: ESTADO DE CUMPLIMIENTO DEL MES CORRIENTE ---
-            const datosMesCorriente = baseDeDatosOriginal.filter(d => d.mes === periodoVigenteGlobal);
-            const cantPagadosMes = datosMesCorriente.filter(d => d.estado === 'PAGADO' || d.estado === 'COBRADO').length;
-            const cantPendientesMes = datosMesCorriente.filter(d => d.estado === 'PENDIENTE').length;
+/* ─ Imprimir Deuda ────────────────────────────── */
+function imprimirDeuda(){
+  const pendientes=datosFiltradosActuales.filter(i=>i.estado==='PENDIENTE');
+  const totalDeuda=pendientes.reduce((a,i)=>{const t=i.total>0?i.total:(i.subtotal+i.recargo);return a+t},0);
+  const ahora=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
-            // Destrucción de instancias previas para evitar bugs visuales
-            if (chartFinanzasInstance) chartFinanzasInstance.destroy();
-            if (chartEstadosInstance) chartEstadosInstance.destroy();
+  const filas=pendientes.map(i=>{
+    const ft=i.total>0?i.total:(i.subtotal+i.recargo);
+    return`<tr>
+      <td>Lote ${i.idLote}</td>
+      <td>${i.propietario}</td>
+      <td style="text-transform:capitalize">${i.mes}</td>
+      <td>${i.tipo}</td>
+      <td style="text-align:right">${fmn(i.subtotal)}</td>
+      <td style="text-align:right">${fmn(i.recargo)}</td>
+      <td style="text-align:right;font-weight:700">${fmn(ft)}</td>
+    </tr>`;
+  }).join('');
 
-            // Renderizar Barras
-            const ctxFinanzas = document.getElementById('chartFinanzas').getContext('2d');
-            chartFinanzasInstance = new Chart(ctxFinanzas, {
-                type: 'bar',
-                data: {
-                    labels: mesesHistoricos.map(m => m.charAt(0).toUpperCase() + m.slice(1)),
-                    datasets: [
-                        { label: 'Cobrado', data: recaudadoPorMes, backgroundColor: '#10b981', borderRadius: 4 },
-                        { label: 'Pendiente', data: deudaPorMes, backgroundColor: '#f43f5e', borderRadius: 4 }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } } },
-                    scales: { y: { beginAtZero: true, ticks: { font: { family: 'Inter', size: 10 } } }, x: { ticks: { font: { family: 'Inter', size: 10 } } } }
-                }
-            });
+  const win=window.open('','_blank','width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>Informe de Deuda — Barrio Euskadi</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Syne',sans-serif;background:#fff;color:#0d1b2e;padding:36px}
+    .cover{border-bottom:3px solid #111;padding-bottom:20px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+    .cover-left h1{font-size:22px;font-weight:800;color:#0d1b2e;letter-spacing:-.4px}
+    .cover-left p{font-size:11px;color:#6b7a8d;margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    .cover-right{text-align:right}
+    .cover-right .ts{font-size:10px;color:#9aa5b4;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    .cover-right .dt{font-size:13px;font-weight:700;color:#0d1b2e;margin-top:2px}
+    .summary{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+    .scard{background:#f8fafd;border:1px solid #e2e8f0;border-radius:10px;padding:14px 20px;flex:1;min-width:140px}
+    .scard-lbl{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#9aa5b4;margin-bottom:5px}
+    .scard-val{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#d32f2f}
+    .scard-val.neutral{color:#0d1b2e}
+    table{width:100%;border-collapse:collapse;font-size:11.5px}
+    thead tr{background:#0d1b2e}
+    th{padding:9px 12px;color:#fff;font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;text-align:left}
+    td{padding:9px 12px;border-bottom:1px solid #e8ecf2;color:#1a2332}
+    tbody tr:nth-child(even) td{background:#f8fafd}
+    tfoot tr td{background:#f0f4fa;font-weight:700;border-top:2px solid #cbd5e0;font-family:'JetBrains Mono',monospace;font-size:12px;color:#d32f2f;padding:11px 12px}
+    .footer-print{margin-top:28px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:9px;color:#a0aab8;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    @media print{@page{margin:18mm 14mm}body{padding:0}}
+  </style></head><body>
+  <div class="cover">
+    <div class="cover-left">
+      <h1>Informe de Deuda Pendiente</h1>
+      <p>Barrio Privado Euskadi I — Pocito · Panel Financiero</p>
+    </div>
+    <div class="cover-right">
+      <div class="ts">Generado el</div>
+      <div class="dt">${ahora}</div>
+    </div>
+  </div>
+  <div class="summary">
+    <div class="scard"><div class="scard-lbl">Registros pendientes</div><div class="scard-val neutral">${pendientes.length}</div></div>
+    <div class="scard"><div class="scard-lbl">Total deuda</div><div class="scard-val">${fmn(totalDeuda)}</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Lote</th><th>Propietario</th><th>Período</th><th>Tipo</th><th style="text-align:right">Monto Base</th><th style="text-align:right">Recargo</th><th style="text-align:right">Total</th></tr></thead>
+    <tbody>${filas}</tbody>
+    <tfoot><tr><td colspan="6" style="text-align:right;color:#0d1b2e">TOTAL DEUDA:</td><td style="text-align:right">${fmn(totalDeuda)}</td></tr></tfoot>
+  </table>
+  <div class="footer-print"><span>Documento generado automáticamente</span><span>Barrio Privado Euskadi I — Pocito</span></div>
+  <script>window.onload=function(){window.print()}<\/script>
+  </body></html>`);
+  win.document.close();
+}
 
-            // Renderizar Torta (Doughnut)
-            const ctxEstados = document.getElementById('chartEstados').getContext('2d');
-            chartEstadosInstance = new Chart(ctxEstados, {
-                type: 'doughnut',
-                data: {
-                    labels: ['PAGADO', 'PENDIENTE'],
-                    datasets: [{
-                        data: [cantPagadosMes, cantPendientesMes],
-                        backgroundColor: ['#10b981', '#f43f5e'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } } }
-                }
-            });
-        }
+/* ─ Charts ────────────────────────────────────── */
+function actualizarGraficos(){
+  const c=chartColors();
+  const sinSaldo=baseDeDatosOriginal.filter(d=>d.tipo!=='SALDO'&&d.mes!=='s/d');
+  let mH=[...new Set(sinSaldo.map(d=>d.mes))];
+  if(mH.length>12)mH=mH.slice(-12);
 
-        function mostrarError(mensaje) {
-            document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-rose-500 rounded-full animate-none";
-            document.getElementById('statusText').innerText = "Error de Sincronización";
-            document.getElementById('tablaCuerpo').innerHTML = `<tr><td colspan="8" class="p-8 text-center text-rose-500 font-medium">${mensaje}</td></tr>`;
-        }
+  const recM=mH.map(m=>sinSaldo.filter(d=>d.mes===m&&(d.estado==='PAGADO'||d.estado==='COBRADO')).reduce((a,d)=>a+(d.total>0?d.total:(d.subtotal+d.recargo)),0));
+  const deuM=mH.map(m=>sinSaldo.filter(d=>d.mes===m&&d.estado==='PENDIENTE').reduce((a,d)=>a+(d.total>0?d.total:(d.subtotal+d.recargo)),0));
 
-        window.onload = function() {
-            lucide.createIcons();
-            conectarYFetchData();
-        };
-    </script>
+  const dmc=baseDeDatosOriginal.filter(d=>d.mes===periodoVigenteGlobal);
+  const cPag=dmc.filter(d=>d.estado==='PAGADO'||d.estado==='COBRADO').length;
+  const cPen=dmc.filter(d=>d.estado==='PENDIENTE').length;
+
+  if(chartFinanzasInstance)chartFinanzasInstance.destroy();
+  if(chartEstadosInstance)chartEstadosInstance.destroy();
+
+  // Bar
+  const ctx1=document.getElementById('chartFinanzas').getContext('2d');
+  chartFinanzasInstance=new Chart(ctx1,{
+    type:'bar',
+    data:{
+      labels:mH.map(m=>m.charAt(0).toUpperCase()+m.slice(1)),
+      datasets:[
+        {label:'Cobrado',data:recM,backgroundColor:'rgba(0,230,118,.75)',borderRadius:6,borderSkipped:false,hoverBackgroundColor:'rgba(0,230,118,1)'},
+        {label:'Pendiente',data:deuM,backgroundColor:'rgba(255,77,109,.65)',borderRadius:6,borderSkipped:false,hoverBackgroundColor:'rgba(255,77,109,1)'}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top',labels:{boxWidth:9,boxHeight:9,borderRadius:3,useBorderRadius:true,font:{family:'Syne',size:11},color:c.text,padding:14}}
+      },
+      scales:{
+        y:{beginAtZero:true,grid:{color:c.grid},ticks:{font:{family:'JetBrains Mono',size:9},color:c.text},border:{display:false}},
+        x:{grid:{display:false},ticks:{font:{family:'Syne',size:10},color:c.text},border:{display:false}}
+      }
+    }
+  });
+
+  // Doughnut
+  const ctx2=document.getElementById('chartEstados').getContext('2d');
+  chartEstadosInstance=new Chart(ctx2,{
+    type:'doughnut',
+    data:{
+      labels:['PAGADO','PENDIENTE'],
+      datasets:[{data:[cPag,cPen],backgroundColor:['rgba(0,230,118,.8)','rgba(255,77,109,.8)'],borderWidth:3,borderColor:c.border,hoverOffset:8}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'68%',
+      plugins:{
+        legend:{position:'bottom',labels:{boxWidth:9,boxHeight:9,borderRadius:3,useBorderRadius:true,font:{family:'Syne',size:11},color:c.text,padding:14}}
+      }
+    }
+  });
+}
+
+function mostrarError(msg){
+  document.getElementById('statusDot').className='sdot err';
+  document.getElementById('statusText').innerText='Error de sincronización';
+  document.getElementById('tablaCuerpo').innerHTML=`<tr><td colspan="8" style="padding:44px;text-align:center;color:var(--red);font-weight:600">${msg}</td></tr>`;
+}
+
+window.onload=function(){buildLotGrid();conectarYFetchData()};
+</script>
 </body>
 </html>
