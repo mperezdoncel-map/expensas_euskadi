@@ -15,7 +15,7 @@
         /* Estilos de optimización absoluta para Impresión y Reportes PDF Selectivos */
         @media print {
             body { background-color: #ffffff; color: #000000; font-size: 11px; }
-            header, .no-print, #statusConnection, button, .section-graficos, .mes-corriente-container, #ficha-registros-listados { 
+            header, .no-print, #statusConnection, button, .section-graficos, .mes-corriente-container, #ficha-registros-listados, .tabs-selector-container { 
                 display: none !important; 
             }
             main { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
@@ -74,7 +74,7 @@
                     </label>
                     <select id="filterMeses" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
                         <option value="TODOS">Todos los meses</option>
-                        </select>
+                    </select>
                 </div>
             </div>
 
@@ -205,39 +205,72 @@
         </section>
 
         <section class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden tabla-container">
-            <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h3 class="font-bold text-lg text-slate-900">Registros de la Base de Datos</h3>
-                    <p class="text-xs text-slate-500">BARRIO EUSKADI I — Totales calculados sobre saldos pendientes</p>
+            <div class="bg-slate-100 p-2 border-b border-slate-200 flex gap-2 tabs-selector-container no-print">
+                <button id="btnTabBaseDatos" onclick="cambiarPestana('BASEDATOS')" class="bg-white text-slate-900 font-bold text-xs px-4 py-2 rounded-lg shadow-xs cursor-pointer flex items-center gap-1">
+                    <i data-lucide="database" class="w-3.5 h-3.5"></i> Vista Base de Datos
+                </button>
+                <button id="btnTabResumenSaldos" onclick="cambiarPestana('RESUMEN')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer flex items-center gap-1">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-600"></i> Resumen de Saldos Imprimible
+                </button>
+            </div>
+
+            <div id="contenedorPestanaBaseDatos" class="w-full">
+                <div class="p-5 border-b border-slate-50">
+                    <h3 class="font-bold text-base text-slate-900">Registros Detallados de la Base de Datos</h3>
+                    <p class="text-xs text-slate-500">Movimientos individuales consolidados en el sistema</p>
+                </div>
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 text-xs font-semibold uppercase border-b border-gray-100">
+                                <th class="p-4">Lote</th>
+                                <th class="p-4">Propietario</th>
+                                <th class="p-4">Período</th>
+                                <th class="p-4">Tipo</th>
+                                <th class="p-4 text-right">Monto Base</th>
+                                <th class="p-4 text-right">Recargo</th>
+                                <th class="p-4 text-right">Total</th>
+                                <th class="p-4 text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCuerpo" class="divide-y divide-slate-100 text-sm"></tbody>
+                        <tfoot class="bg-slate-50 text-slate-900 font-bold border-t-2 border-slate-300 text-sm tfoot-totales">
+                            <tr>
+                                <td colspan="4" class="p-4 text-left text-xs text-slate-500 font-bold uppercase">Total Pendiente Detallado:</td>
+                                <td class="p-4 text-right text-slate-700" id="totalTabSubtotal">$0,00</td>
+                                <td class="p-4 text-right text-amber-700" id="totalTabRecargo">$0,00</td>
+                                <td class="p-4 text-right text-slate-900 text-base" id="totalTabTotal">$0,00</td>
+                                <td class="p-4 text-center text-xs"><span class="bg-rose-100 text-rose-800 px-2 py-1 rounded font-bold shadow-sm">MORA DETALLE</span></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
-            
-            <div class="overflow-x-auto w-full">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 text-slate-600 text-xs font-semibold uppercase tracking-wider border-b border-gray-100">
-                            <th class="p-4">Lote</th>
-                            <th class="p-4">Propietario</th>
-                            <th class="p-4">Período</th>
-                            <th class="p-4">Tipo</th>
-                            <th class="p-4 text-right">Monto Base</th>
-                            <th class="p-4 text-right">Recargo</th>
-                            <th class="p-4 text-right">Total</th>
-                            <th class="p-4 text-center">Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaCuerpo" class="divide-y divide-slate-100 text-sm">
-                        </tbody>
-                    <tfoot class="bg-slate-50 text-slate-900 font-bold border-t-2 border-slate-300 text-sm tfoot-totales">
-                        <tr>
-                            <td colspan="4" class="p-4 text-left uppercase tracking-wider text-xs text-slate-500 font-bold">Total Pendiente de Cobro:</td>
-                            <td class="p-4 text-right text-slate-700" id="totalTabSubtotal">$0,00</td>
-                            <td class="p-4 text-right text-amber-700" id="totalTabRecargo">$0,00</td>
-                            <td class="p-4 text-right text-slate-900 text-base" id="totalTabTotal">$0,00</td>
-                            <td class="p-4 text-center text-xs"><span class="bg-rose-100 text-rose-800 px-2 py-1 rounded font-bold uppercase tracking-wider shadow-sm">MORA NETO</span></td>
-                        </tr>
-                    </tfoot>
-                </table>
+
+            <div id="contenedorPestanaResumen" class="w-full hidden">
+                <div class="p-5 border-b border-slate-50">
+                    <h3 class="font-bold text-base text-slate-900">Resumen Consolidado de Deuda por Lote</h3>
+                    <p class="text-xs text-slate-500">Mora neta acumulada por titular — Excluye obligaciones canceladas</p>
+                </div>
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 text-xs font-semibold uppercase border-b border-gray-100">
+                                <th class="p-4">Lote Número</th>
+                                <th class="p-4">Propietario/s</th>
+                                <th class="p-4 text-right">Importe Adeudado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaResumenCuerpo" class="divide-y divide-slate-100 text-sm">
+                            </tbody>
+                        <tfoot class="bg-slate-50 text-slate-900 font-bold border-t-2 border-slate-300 text-sm tfoot-totales">
+                            <tr>
+                                <td colspan="2" class="p-4 text-left text-xs text-slate-500 font-bold uppercase">Total de Deuda Consolidada Consorcio:</td>
+                                <td class="p-4 text-right text-slate-900 text-base" id="totalResumenTotal">$0,00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
         </section>
     </main>
@@ -252,6 +285,7 @@
         let chartGaugeInstance = null;
         
         let lotesSeleccionados = [];
+        let pestanaActiva = "BASEDATOS"; // Control de estado de la tab
 
         const mapaLotesEquivalentes = {
             "01": "I", "02": "II", "03": "III", "04": "IV", "05": "V",
@@ -269,6 +303,27 @@
             return isNaN(num) ? 0 : num;
         }
 
+        // Controlador de Navegación entre Pestañas Internas
+        function cambiarPestana(pestana) {
+            pestanaActiva = pestana;
+            const tabBD = document.getElementById('btnTabBaseDatos');
+            const tabResumen = document.getElementById('btnTabResumenSaldos');
+            const contenedorBD = document.getElementById('contenedorPestanaBaseDatos');
+            const contenedorResumen = document.getElementById('contenedorPestanaResumen');
+
+            if (pestana === "BASEDATOS") {
+                tabBD.className = "bg-white text-slate-900 font-bold text-xs px-4 py-2 rounded-lg shadow-xs cursor-pointer flex items-center gap-1";
+                tabResumen.className = "bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer flex items-center gap-1";
+                contenedorBD.classList.remove('hidden');
+                contenedorResumen.classList.add('hidden');
+            } else {
+                tabResumen.className = "bg-white text-slate-900 font-bold text-xs px-4 py-2 rounded-lg shadow-xs cursor-pointer flex items-center gap-1";
+                tabBD.className = "bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer flex items-center gap-1";
+                contenedorResumen.classList.remove('hidden');
+                contenedorBD.classList.add('hidden');
+            }
+        }
+
         async function conectarYFetchData() {
             try {
                 const response = await fetch(SHEETS_CSV_URL);
@@ -276,14 +331,9 @@
                 const csvTexto = await response.text();
                 
                 Papa.parse(csvTexto, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        mapearYProcesarDatos(results.data);
-                    },
-                    error: function() {
-                        mostrarError("Error al interpretar la estructura de la base de datos.");
-                    }
+                    header: true, skipEmptyLines: true,
+                    complete: function(results) { mapearYProcesarDatos(results.data); },
+                    error: function() { mostrarError("Error al interpretar la estructura."); }
                 });
             } catch (error) {
                 console.error(error);
@@ -319,12 +369,11 @@
             selectMeses.innerHTML = '<option value="TODOS">Todos los meses</option>';
             todosLosMeses.forEach(mes => {
                 const opt = document.createElement('option');
-                opt.value = mes;
-                opt.innerText = mes.charAt(0).toUpperCase() + mes.slice(1);
+                opt.value = mes; opt.innerText = mes.charAt(0).toUpperCase() + mes.slice(1);
                 selectMeses.appendChild(opt);
             });
 
-            // Enlazar los propietarios a los botones HTML fijos de forma dinámica
+            // Enlazar los propietarios fijos
             Object.keys(mapaLotesEquivalentes).forEach(numStr => {
                 const codigoRomano = mapaLotesEquivalentes[numStr];
                 const registroLote = baseDeDatosOriginal.find(d => d.idLote === codigoRomano);
@@ -332,7 +381,6 @@
                 
                 const lbl = document.getElementById(`lblPropietario-${numStr}`);
                 if (lbl) lbl.innerText = nombreCortoPropietario;
-
                 const btn = document.getElementById(`btnLote-${numStr}`);
                 if (btn) btn.disabled = false;
             });
@@ -384,7 +432,6 @@
                 }
             });
             lotesSeleccionados = [];
-            
             procesarDashboard(baseDeDatosOriginal);
         }
 
@@ -455,6 +502,7 @@
             document.getElementById('lblGaugePagados').innerText = `Pagos: ${cantPagadosGauge}`;
             document.getElementById('lblGaugePendientes').innerText = `Pendientes: ${cantPendientesGauge}`;
 
+            // 1. RENDERIZAR CONTENEDOR DETALLADO (TABLA 1)
             const tbody = document.getElementById('tablaCuerpo');
             tbody.innerHTML = '';
             
@@ -463,7 +511,7 @@
             let acumTotalPendiente = 0;
 
             if(datosFiltrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron registros activos bajo los filtros seleccionados</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron registros activos</td></tr>`;
             } else {
                 datosFiltrados.forEach(item => {
                     const finalTotal = item.total > 0 ? item.total : (item.subtotal + item.recargo);
@@ -486,7 +534,7 @@
                         <td class="p-4 text-right text-amber-600">${formatMoneda(item.recargo)}</td>
                         <td class="p-4 text-right font-semibold text-slate-900">${formatMoneda(finalTotal)}</td>
                         <td class="p-4 text-center">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-bold shadow-sm tracking-wide ${isPagado ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold tracking-wide ${isPagado ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
                                 ${item.estado}
                             </span>
                         </td>
@@ -499,24 +547,63 @@
             document.getElementById('totalTabRecargo').innerText = formatMoneda(acumRecargoPendiente);
             document.getElementById('totalTabTotal').innerText = formatMoneda(acumTotalPendiente);
 
+            // 2. RENDERIZAR NUEVO COMPONENTE DE RESUMEN COMPACTO LOTE POR LOTE (TABLA 2)
+            const tbodyResumen = document.getElementById('tablaResumenCuerpo');
+            tbodyResumen.innerHTML = '';
+            let granTotalResumenAcumulado = 0;
+
+            // Iteramos ordenadamente por cada lote del 01 al 20
+            Object.keys(mapaLotesEquivalentes).sort().forEach(numStr => {
+                const codigoRomano = mapaLotesEquivalentes[numStr];
+                
+                // Filtramos los registros del lote que apliquen bajo los criterios actuales
+                const registrosDelLoteFiltrados = datosFiltrados.filter(d => d.idLote === codigoRomano);
+                
+                // Extraer propietario base
+                let propietarioText = "Sin Asignar";
+                if(registrosDelLoteFiltrados.length > 0) {
+                    propietarioText = registrosDelLoteFiltrados[0].propietario;
+                } else {
+                    const registroHistorico = baseDeDatosOriginal.find(d => d.idLote === codigoRomano);
+                    if(registroHistorico) propietarioText = registroHistorico.propietario;
+                }
+
+                // Sumarizar deuda neta del lote bajo el filtro actual (excluyendo lo pagado)
+                let saldoAdeudadoLote = 0;
+                registrosDelLoteFiltrados.forEach(r => {
+                    if (r.estado !== 'PAGADO' && r.estado !== 'COBRADO') {
+                        saldoAdeudadoLote += (r.total > 0 ? r.total : (r.subtotal + r.recargo));
+                    }
+                });
+
+                granTotalResumenAcumulado += saldoAdeudadoLote;
+
+                // Insertamos la fila resumida solicitada
+                const trResumen = document.createElement('tr');
+                trResumen.className = "hover:bg-slate-50 transition-colors";
+                trResumen.innerHTML = `
+                    <td class="p-4 font-bold text-slate-800">Lote ${numStr}</td>
+                    <td class="p-4 font-medium text-slate-900 uppercase text-xs tracking-tight">${propietarioText}</td>
+                    <td class="p-4 text-right font-bold ${saldoAdeudadoLote > 0 ? 'text-rose-600' : 'text-slate-400'}">${formatMoneda(saldoAdeudadoLote)}</td>
+                `;
+                tbodyResumen.appendChild(trResumen);
+            });
+
+            document.getElementById('totalResumenTotal').innerText = formatMoneda(granTotalResumenAcumulado);
+
             actualizarGraficos(porcentajeEfectividadMes);
         }
 
         function actualizarGraficos(porcentajeGauge) {
             const datosSinSaldo = baseDeDatosOriginal.filter(d => d.tipo !== 'SALDO' && d.mes !== 's/d');
             let mesesHistoricos = [...new Set(datosSinSaldo.map(d => d.mes))];
-            if (mesesHistoricos.length > 12) {
-                mesesHistoricos = mesesHistoricos.slice(-12);
-            }
+            if (mesesHistoricos.length > 12) { mesesHistoricos = mesesHistoricos.slice(-12); }
 
             const recaudadoPorMes = mesesHistoricos.map(m => 
-                datosSinSaldo.filter(d => d.mes === m && (d.estado === 'PAGADO' || d.estado === 'COBRADO'))
-                             .reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
+                datosSinSaldo.filter(d => d.mes === m && (d.estado === 'PAGADO' || d.estado === 'COBRADO')).reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
             );
-            
             const deudaPorMes = mesesHistoricos.map(m => 
-                datosSinSaldo.filter(d => d.mes === m && d.estado === 'PENDIENTE')
-                             .reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
+                datosSinSaldo.filter(d => d.mes === m && d.estado === 'PENDIENTE').reduce((acc, curr) => acc + (curr.total > 0 ? curr.total : (curr.subtotal + curr.recargo)), 0)
             );
 
             const datosMesCorriente = baseDeDatosOriginal.filter(d => d.mes === periodoVigenteGlobal);
@@ -537,12 +624,7 @@
                         { label: 'Pendiente', data: deudaPorMes, backgroundColor: '#f43f5e', borderRadius: 4 }
                     ]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } } },
-                    scales: { y: { beginAtZero: true, ticks: { font: { family: 'Inter', size: 10 } } } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } } } }
             });
 
             const ctxEstados = document.getElementById('chartEstados').getContext('2d');
@@ -550,42 +632,16 @@
                 type: 'doughnut',
                 data: {
                     labels: ['PAGADO', 'PENDIENTE'],
-                    datasets: [{
-                        data: [cantPagadosMes, cantPendientesMes],
-                        backgroundColor: ['#10b981', '#f43f5e'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
+                    datasets: [{ data: [cantPagadosMes, cantPendientesMes], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 2, borderColor: '#ffffff' }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } } } }
             });
 
             const ctxGauge = document.getElementById('chartGaugeMes').getContext('2d');
             chartGaugeInstance = new Chart(ctxGauge, {
                 type: 'doughnut',
-                data: {
-                    labels: ['Efectividad', 'Pendiente'],
-                    datasets: [{
-                        data: [parseFloat(porcentajeGauge), 100 - parseFloat(porcentajeGauge)],
-                        backgroundColor: ['#10b981', '#e2e8f0'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    circumference: 180,
-                    rotation: 270,
-                    cutout: '75%',
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { disabled: true }
-                    }
-                }
+                data: { labels: ['Efectividad', 'Pendiente'], datasets: [{ data: [parseFloat(porcentajeGauge), 100 - parseFloat(porcentajeGauge)], backgroundColor: ['#10b981', '#e2e8f0'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, circumference: 180, rotation: 270, cutout: '75%', plugins: { legend: { display: false }, tooltip: { disabled: true } } }
             });
         }
 
