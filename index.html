@@ -15,21 +15,9 @@
         /* Estilos de optimización absoluta para Impresión y Reportes PDF Selectivos */
         @media print {
             body { background-color: #ffffff; color: #000000; font-size: 11px; }
-            header, .no-print, #statusConnection, button, .section-graficos, .mes-corriente-container, #ficha-registros-listados, #modalEstadoCuenta { 
+            header, .no-print, #statusConnection, button, .section-graficos, .mes-corriente-container, #ficha-registros-listados { 
                 display: none !important; 
             }
-            /* Si la impresión se lanza desde el modal, ocultamos el fondo y mostramos el modal como página principal */
-            body.print-modal-active #modalContent { 
-                display: block !important; 
-                border: none !important; 
-                box-shadow: none !important; 
-                position: absolute !important; 
-                left: 0 !important; top: 0 !important; 
-                width: 100% !important; max-width: 100% !important; 
-                padding: 0 !important; margin: 0 !important; 
-            }
-            body.print-modal-active main, body.print-modal-active header { display: none !important; }
-            
             main { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
             .section-metrics { display: block !important; margin-bottom: 20px !important; }
             .metrics-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 16px !important; }
@@ -50,9 +38,6 @@
                 <p class="text-xs text-slate-400">Panel de Control Financiero y Gestión de Expensas en Tiempo Real</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <button onclick="abrirModalEstadoCuenta()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-sm cursor-pointer">
-                    <i data-lucide="briefcase" class="w-4 h-4"></i> Estado de Cuenta por Lote
-                </button>
                 <button onclick="window.print()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-4 py-2 rounded-lg border border-slate-700 transition shadow-sm cursor-pointer">
                     <i data-lucide="printer" class="w-4 h-4 text-emerald-400"></i> Imprimir Reporte / PDF
                 </button>
@@ -138,21 +123,18 @@
                         <p class="text-xs font-medium text-slate-400">Total Recaudado</p>
                         <h3 class="text-xl font-bold text-slate-900" id="kpiRecaudado">$0,00</h3>
                     </div>
-                    <div class="bg-emerald-50 p-2.5 rounded-xl text-emerald-600 no-print"><i data-lucide="trending-up" class="w-5 h-5"></i></div>
                 </div>
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
                     <div class="space-y-1">
                         <p class="text-xs font-medium text-slate-400">Deuda Pendiente</p>
                         <h3 class="text-xl font-bold text-rose-600" id="kpiDeuda">$0,00</h3>
                     </div>
-                    <div class="bg-rose-50 p-2.5 rounded-xl text-rose-600 no-print"><i data-lucide="alert-circle" class="w-5 h-5"></i></div>
                 </div>
                 <div id="ficha-registros-listados" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between sm:col-span-2 lg:col-span-1">
                     <div class="space-y-1">
                         <p class="text-xs font-medium text-slate-400">Registros Listados</p>
                         <h3 class="text-xl font-bold text-slate-900" id="kpiRegistros">0</h3>
                     </div>
-                    <div class="bg-blue-50 p-2.5 rounded-xl text-blue-600"><i data-lucide="database" class="w-5 h-5"></i></div>
                 </div>
             </section>
         </div>
@@ -168,21 +150,18 @@
                         <p class="text-xs font-medium text-slate-400">Cobros Mes Corriente</p>
                         <h3 class="text-xl font-bold text-emerald-600" id="kpiCobrosMes">$0,00</h3>
                     </div>
-                    <div class="bg-slate-50 p-2.5 rounded-xl text-slate-600"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
                 </div>
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-rose-500">
                     <div class="space-y-1">
                         <p class="text-xs font-medium text-slate-400">Deuda Mes Corriente</p>
                         <h3 class="text-xl font-bold text-rose-600" id="kpiDeudaMes">$0,00</h3>
                     </div>
-                    <div class="bg-slate-50 p-2.5 rounded-xl text-slate-600"><i data-lucide="alert-triangle" class="w-5 h-5"></i></div>
                 </div>
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between border-l-4 border-l-amber-500">
                     <div class="space-y-1">
                         <p class="text-xs font-medium text-slate-400">Lotes en Mora</p>
                         <h3 class="text-xl font-bold text-slate-900" id="kpiMoraMes">0</h3>
                     </div>
-                    <div class="bg-amber-50 p-2.5 rounded-xl text-amber-600"><i data-lucide="users" class="w-5 h-5"></i></div>
                 </div>
                 
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between items-center min-h-[110px]">
@@ -263,49 +242,9 @@
         </section>
     </main>
 
-    <div id="modalEstadoCuenta" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 hidden no-print">
-        <div id="modalContent" class="bg-white w-full max-w-5xl rounded-2xl shadow-xl border border-slate-200 m-4 overflow-hidden max-h-[85vh] flex flex-col">
-            <div class="bg-slate-950 p-4 text-white flex justify-between items-center">
-                <div>
-                    <h2 class="text-base font-bold uppercase tracking-wide">Análisis Consolidado: Estado de Cuenta por Lote</h2>
-                    <p class="text-xs text-slate-400">Análisis cronológico de deuda vencida y obligaciones a vencer</p>
-                </div>
-                <div class="flex items-center gap-2 no-print">
-                    <button onclick="imprimirModalEstado()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer">
-                        <i data-lucide="printer" class="w-3.5 h-3.5"></i> Imprimir Resumen
-                    </button>
-                    <button onclick="cerrarModalEstadoCuenta()" class="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="p-5 overflow-y-auto flex-1">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-700 text-xs font-bold uppercase border-b border-slate-200">
-                            <th class="p-3">N° Lote</th>
-                            <th class="p-3">Propietario</th>
-                            <th class="p-3 text-right text-rose-600">Deuda Vencida (Mora)</th>
-                            <th class="p-3 text-right text-blue-600">Deuda A Vencer</th>
-                            <th class="p-3 text-right font-bold text-slate-900">Pasivo Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="modalTablaCuerpo" class="divide-y divide-slate-100 text-sm">
-                        </tbody>
-                    <tfoot class="bg-slate-900 text-white font-bold text-sm">
-                        <tr>
-                            <td colspan="2" class="p-3 text-left uppercase tracking-wider text-xs font-bold">Consolidado General Consorcio:</td>
-                            <td class="p-3 text-right text-rose-400" id="modalTotalVencido">$0,00</td>
-                            <td class="p-3 text-right text-blue-300" id="modalTotalAVencer">$0,00</td>
-                            <td class="p-3 text-right text-emerald-400 text-base" id="modalTotalPasivo">$0,00</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <script>
+        const SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTeRTnTG2O69xGBaDShVvATBv8s9I6w0N2O0Zd1A7RPxMcM8I5w2kksmcMTtMO742WTbJjY28jsp28p/pub?gid=0&single=true&output=csv";
+
         let baseDeDatosOriginal = [];
         let periodoVigenteGlobal = "";
         let chartFinanzasInstance = null;
@@ -328,88 +267,6 @@
             let str = valor.toString().replace(/[^0-9,\-]/g, '').replace(',', '.');
             let num = parseFloat(str);
             return isNaN(num) ? 0 : num;
-        }
-
-        function imprimirModalEstado() {
-            document.body.classList.add('print-modal-active');
-            window.print();
-            setTimeout(() => { document.body.classList.remove('print-modal-active'); }, 1000);
-        }
-
-        function abrirModalEstadoCuenta() {
-            const hoy = new Date();
-            // Normalizar la fecha de hoy a las 00:00 para evitar desvíos horariios
-            hoy.setHours(0, 0, 0, 0);
-
-            const tbody = document.getElementById('modalTablaCuerpo');
-            tbody.innerHTML = '';
-
-            let consolidadoVencido = 0;
-            let consolidadoAVencer = 0;
-
-            Object.keys(mapaLotesEquivalentes).sort().forEach(numStr => {
-                const codigoRomano = mapaLotesEquivalentes[numStr];
-                const registrosLote = baseDeDatosOriginal.filter(d => d.idLote === codigoRomano);
-                
-                const primerRegistro = registrosLote[0];
-                const propietario = primerRegistro ? primerRegistro.propietario : 'Sin Asignar';
-
-                let subtotalVencido = 0;
-                let subtotalAVencer = 0;
-
-                registrosLote.forEach(r => {
-                    if (r.estado === 'PENDIENTE') {
-                        const finalTotal = r.total > 0 ? r.total : (r.subtotal + r.recargo);
-                        let esVencido = true; 
-
-                        if (r.fechaVencimiento) {
-                            const partes = r.fechaVencimiento.split('/');
-                            if(partes.length === 3) {
-                                // Forzar parseo de enteros limpios
-                                const dia = parseInt(partes[0], 10);
-                                const mes = parseInt(partes[1], 10) - 1;
-                                const anio = parseInt(partes[2], 10);
-                                
-                                const fVenc = new Date(anio, mes, dia);
-                                fVenc.setHours(0,0,0,0);
-                                
-                                if (fVenc > hoy) esVencido = false; 
-                            }
-                        }
-
-                        if (esVencido) {
-                            subtotalVencido += finalTotal;
-                        } else {
-                            subtotalAVencer += finalTotal;
-                        }
-                    }
-                });
-
-                consolidadoVencido += subtotalVencido;
-                consolidadoAVencer += subtotalAVencer;
-                const totalPasivoLote = subtotalVencido + subtotalAVencer;
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors";
-                tr.innerHTML = `
-                    <td class="p-3 font-bold text-slate-700">Lote ${numStr}</td>
-                    <td class="p-3 font-medium text-slate-900 uppercase text-xs">${propietario}</td>
-                    <td class="p-3 text-right font-semibold ${subtotalVencido > 0 ? 'text-rose-600' : 'text-slate-400'}">${formatMoneda(subtotalVencido)}</td>
-                    <td class="p-3 text-right font-semibold ${subtotalAVencer > 0 ? 'text-blue-600' : 'text-slate-400'}">${formatMoneda(subtotalAVencer)}</td>
-                    <td class="p-3 text-right font-bold text-slate-900">${formatMoneda(totalPasivoLote)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            document.getElementById('modalTotalVencido').innerText = formatMoneda(consolidadoVencido);
-            document.getElementById('modalTotalAVencer').innerText = formatMoneda(consolidadoAVencer);
-            document.getElementById('modalTotalPasivo').innerText = formatMoneda(consolidadoVencido + consolidadoAVencer);
-
-            document.getElementById('modalEstadoCuenta').classList.remove('hidden');
-        }
-
-        function cerrarModalEstadoCuenta() {
-            document.getElementById('modalEstadoCuenta').classList.add('hidden');
         }
 
         async function conectarYFetchData() {
@@ -449,8 +306,7 @@
                     subtotal: limpiarNumero(getVal(['SUBTOTAL', 'MONTOEXPENSAS', 'MONTO_BASE'])),
                     recargo: limpiarNumero(getVal(['RECARGO', 'TASARECARGO', 'INTERESES'])),
                     total: limpiarNumero(getVal(['TOTAL', 'MONTO_TOTAL'])),
-                    estado: (getVal(['ESTADO', 'CONDICION']) || 'PENDIENTE').trim().toUpperCase(),
-                    fechaVencimiento: getVal(['FECHAVENCIMIENTO', 'VENCIMIENTO', 'FECHA_VENCIMIENTO'])
+                    estado: (getVal(['ESTADO', 'CONDICION']) || 'PENDIENTE').trim().toUpperCase()
                 };
             }).filter(item => item.idLote !== '');
 
