@@ -15,7 +15,7 @@
         /* Estilos de optimización absoluta para Impresión y Reportes PDF Selectivos */
         @media print {
             body { background-color: #ffffff; color: #000000; font-size: 11px; }
-            header, .no-print, #statusConnection, button, .section-graficos, .mes-corriente-container, #ficha-registros-listados, .tabs-selector-container { 
+            header, .no-print, #statusConnection, button, .section-graficos, .mes-corriente-container, #ficha-registros-listados, .tabs-selector-container, .resumen-actions-container { 
                 display: none !important; 
             }
             main { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
@@ -209,7 +209,7 @@
                 <button id="btnTabBaseDatos" onclick="cambiarPestana('BASEDATOS')" class="bg-white text-slate-900 font-bold text-xs px-4 py-2 rounded-lg shadow-xs cursor-pointer flex items-center gap-1">
                     <i data-lucide="database" class="w-3.5 h-3.5"></i> Vista Base de Datos
                 </button>
-                <button id="btnTabResumenSaldos" onclick="cambiarPestana('RESUMEN')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer flex items-center gap-1">
+                <button id="btnTabResumenSaldos" onclick="cambiarPestana('RESUMEN')" class="bg-white text-slate-700 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer flex items-center gap-1">
                     <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-600"></i> Resumen de Saldos Imprimible
                 </button>
             </div>
@@ -248,9 +248,19 @@
             </div>
 
             <div id="contenedorPestanaResumen" class="w-full hidden">
-                <div class="p-5 border-b border-slate-50">
-                    <h3 class="font-bold text-base text-slate-900">Resumen Consolidado de Deuda por Lote</h3>
-                    <p class="text-xs text-slate-500">Mora neta acumulada por titular — Excluye obligaciones canceladas</p>
+                <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="font-bold text-base text-slate-900">Resumen Consolidado de Deuda por Lote</h3>
+                        <p class="text-xs text-slate-500 font-medium">Fecha de cálculo: <span id="lblFechaCalculoReporte" class="font-bold text-slate-900">-</span></p>
+                    </div>
+                    <div class="flex items-center gap-2 resumen-actions-container no-print">
+                        <button onclick="window.print()" class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow-sm cursor-pointer">
+                            <i data-lucide="printer" class="w-3.5 h-3.5 text-emerald-400"></i> Imprimir este Resumen
+                        </button>
+                        <button onclick="compartirWhatsAppResumen()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow-sm cursor-pointer">
+                            <i data-lucide="message-square" class="w-3.5 h-3.5"></i> Enviar por WhatsApp
+                        </button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto w-full">
                     <table class="w-full text-left border-collapse">
@@ -280,12 +290,13 @@
 
         let baseDeDatosOriginal = [];
         let periodoVigenteGlobal = "";
+        let fechaYHoraCalculoGlobal = ""; // Variable global para unificar la marca de auditoría temporal
         let chartFinanzasInstance = null;
         let chartEstadosInstance = null;
         let chartGaugeInstance = null;
         
         let lotesSeleccionados = [];
-        let pestanaActiva = "BASEDATOS"; // Control de estado de la tab
+        let pestanaActiva = "BASEDATOS";
 
         const mapaLotesEquivalentes = {
             "01": "I", "02": "II", "03": "III", "04": "IV", "05": "V",
@@ -303,7 +314,7 @@
             return isNaN(num) ? 0 : num;
         }
 
-        // Controlador de Navegación entre Pestañas Internas
+        // Conmutador de Pestañas Internas
         function cambiarPestana(pestana) {
             pestanaActiva = pestana;
             const tabBD = document.getElementById('btnTabBaseDatos');
@@ -324,6 +335,44 @@
             }
         }
 
+        // Lógica de Despacho de Información Vía WhatsApp (Cadena de Texto Formateada)
+        function compartirWhatsAppResumen() {
+            let mensaje = `*BARRIO EUSKADI I - POCITO*\n`;
+            mensaje += `*RESUMEN CONSOLIDADO DE SALDOS PENDIENTES*\n`;
+            mensaje += `_Fecha de cálculo: ${fechaYHoraCalculoGlobal}_\n`;
+            mensaje += `-------------------------------------------\n\n`;
+
+            let granTotalWhatsApp = 0;
+            const tbodyResumen = document.getElementById('tablaResumenCuerpo');
+            const filas = tbodyResumen.getElementsByTagName('tr');
+
+            for (let i = 0; i < filas.length; i++) {
+                const celdas = filas[i].getElementsByTagName('td');
+                if (celdas.length >= 3) {
+                    const lote = celdas[0].innerText.trim();
+                    const propietario = celdas[1].innerText.trim();
+                    const importeStr = celdas[2].innerText.trim();
+                    
+                    // Extraer el valor numérico para sumarizar el gran total del mensaje
+                    let valorNumerico = limpiarNumero(importeStr.replace('$',''));
+                    granTotalWhatsApp += valorNumerico;
+
+                    // Solo listar en el WhatsApp los lotes que mantengan deuda activa para no saturar el texto
+                    if (valorNumerico > 0) {
+                        mensaje += `• *${lote}* - ${propietario}: _${importeStr}_\n`;
+                    }
+                }
+            }
+
+            mensaje += `\n-------------------------------------------\n`;
+            mensaje += `*TOTAL DEUDA GLOBAL:* ${formatMoneda(granTotalWhatsApp)}\n\n`;
+            mensaje += `_Reporte financiero emitido desde el Panel de Control Digital._`;
+
+            // Codificar texto para cumplir con las especificaciones del protocolo URI
+            const textoCodificado = encodeURIComponent(mensaje);
+            window.open(`https://api.whatsapp.com/send?text=${textoCodificado}`, '_blank');
+        }
+
         async function conectarYFetchData() {
             try {
                 const response = await fetch(SHEETS_CSV_URL);
@@ -332,7 +381,7 @@
                 
                 Papa.parse(csvTexto, {
                     header: true, skipEmptyLines: true,
-                    complete: function(results) { mapearYProcesarDatos(results.data); },
+                    complete: function(results) {  mapearYProcesarDatos(results.data); },
                     error: function() { mostrarError("Error al interpretar la estructura."); }
                 });
             } catch (error) {
@@ -373,7 +422,7 @@
                 selectMeses.appendChild(opt);
             });
 
-            // Enlazar los propietarios fijos
+            // Mapear los propietarios
             Object.keys(mapaLotesEquivalentes).forEach(numStr => {
                 const codigoRomano = mapaLotesEquivalentes[numStr];
                 const registroLote = baseDeDatosOriginal.find(d => d.idLote === codigoRomano);
@@ -385,13 +434,18 @@
                 if (btn) btn.disabled = false;
             });
 
+            // Establecer marca temporal unificada de cálculo (auditoría en tiempo real)
+            const ahora = new Date();
+            fechaYHoraCalculoGlobal = ahora.toLocaleDateString('es-AR') + ' a las ' + ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('lblFechaCalculoReporte').innerText = fechaYHoraCalculoGlobal;
+
             document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-emerald-500 rounded-full";
             document.getElementById('statusText').innerText = "Sincronizado";
             document.getElementById('filterEstado').disabled = false;
             document.getElementById('searchQuery').disabled = false;
             document.getElementById('filterMeses').disabled = false;
             document.getElementById('btnResetFilters').disabled = false;
-            document.getElementById('fechaActualizacion').innerText = new Date().toLocaleDateString('es-AR', { hour: '2-digit', minute:'2-digit', second: '2-digit' });
+            document.getElementById('fechaActualizacion').innerText = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute:'2-digit', second: '2-digit' });
 
             procesarDashboard(baseDeDatosOriginal);
 
@@ -470,7 +524,6 @@
             document.getElementById('kpiDeuda').innerText = formatMoneda(totalDeudaFiltrado);
             document.getElementById('kpiRegistros').innerText = datosFiltrados.length;
 
-            // Métricas del mes corriente
             let cobrosMesCorriente = 0;
             let deudaMesCorriente = 0;
             let lotesEnMoraMesCorriente = new Set();
@@ -502,7 +555,7 @@
             document.getElementById('lblGaugePagados').innerText = `Pagos: ${cantPagadosGauge}`;
             document.getElementById('lblGaugePendientes').innerText = `Pendientes: ${cantPendientesGauge}`;
 
-            // 1. RENDERIZAR CONTENEDOR DETALLADO (TABLA 1)
+            // 1. RENDERIZAR DETALLE (TABLA 1)
             const tbody = document.getElementById('tablaCuerpo');
             tbody.innerHTML = '';
             
@@ -534,7 +587,7 @@
                         <td class="p-4 text-right text-amber-600">${formatMoneda(item.recargo)}</td>
                         <td class="p-4 text-right font-semibold text-slate-900">${formatMoneda(finalTotal)}</td>
                         <td class="p-4 text-center">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-bold tracking-wide ${isPagado ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold shadow-sm tracking-wide ${isPagado ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
                                 ${item.estado}
                             </span>
                         </td>
@@ -547,19 +600,15 @@
             document.getElementById('totalTabRecargo').innerText = formatMoneda(acumRecargoPendiente);
             document.getElementById('totalTabTotal').innerText = formatMoneda(acumTotalPendiente);
 
-            // 2. RENDERIZAR NUEVO COMPONENTE DE RESUMEN COMPACTO LOTE POR LOTE (TABLA 2)
+            // 2. RENDERIZAR RESUMEN COMPACTO LOTE POR LOTE (TABLA 2)
             const tbodyResumen = document.getElementById('tablaResumenCuerpo');
             tbodyResumen.innerHTML = '';
             let granTotalResumenAcumulado = 0;
 
-            // Iteramos ordenadamente por cada lote del 01 al 20
             Object.keys(mapaLotesEquivalentes).sort().forEach(numStr => {
                 const codigoRomano = mapaLotesEquivalentes[numStr];
-                
-                // Filtramos los registros del lote que apliquen bajo los criterios actuales
                 const registrosDelLoteFiltrados = datosFiltrados.filter(d => d.idLote === codigoRomano);
                 
-                // Extraer propietario base
                 let propietarioText = "Sin Asignar";
                 if(registrosDelLoteFiltrados.length > 0) {
                     propietarioText = registrosDelLoteFiltrados[0].propietario;
@@ -568,7 +617,6 @@
                     if(registroHistorico) propietarioText = registroHistorico.propietario;
                 }
 
-                // Sumarizar deuda neta del lote bajo el filtro actual (excluyendo lo pagado)
                 let saldoAdeudadoLote = 0;
                 registrosDelLoteFiltrados.forEach(r => {
                     if (r.estado !== 'PAGADO' && r.estado !== 'COBRADO') {
@@ -578,7 +626,6 @@
 
                 granTotalResumenAcumulado += saldoAdeudadoLote;
 
-                // Insertamos la fila resumida solicitada
                 const trResumen = document.createElement('tr');
                 trResumen.className = "hover:bg-slate-50 transition-colors";
                 trResumen.innerHTML = `
