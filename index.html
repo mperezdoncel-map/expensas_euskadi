@@ -69,4 +69,51 @@
                     <p class="text-xs text-slate-400">Panel de Control Financiero y Gestión de Expensas en Tiempo Real</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                    <button onclick="cerrarSesion()" class="no-print flex items-center gap-
+                    <button onclick="cerrarSesion()" class="no-print flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium px-3 py-2 rounded-lg border border-slate-700 transition cursor-pointer">
+                        <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Salir
+                    </button>
+                    <button onclick="window.print()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-4 py-2 rounded-lg border border-slate-700 transition shadow-sm cursor-pointer">
+                        <i data-lucide="printer" class="w-4 h-4 text-emerald-400"></i> Imprimir Reporte / PDF
+                    </button>
+                    <div id="statusConnection" class="flex items-center gap-2 text-sm bg-slate-900 px-3 py-1.5 rounded-full text-slate-300">
+                        <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" id="statusDot"></span>
+                        <span id="statusText">Conectando...</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+            <section id="seccionFiltrosSuperiores" class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-5 no-print">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Filtrar por Estado</label>
+                        <select id="filterEstado" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
+                            <option value="TODOS">Todos los Estados</option>
+                            <option value="PENDIENTE">Pendientes</option>
+                            <option value="PAGADO">Pagados</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Buscar por Propietario</label>
+                        <div class="relative">
+                            <input id="searchQuery" type="text" placeholder="Buscar nombre..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-3"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1 flex justify-between">
+                            <span>Filtrar por Período / Mes</span>
+                        </label>
+                        <select id="filterMeses" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled>
+                            <option value="TODOS">Todos los meses</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Selección de Fichas por Lote</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-2 text-center" id="contenedorLotesBotonera">
+                        <button id="btnLote-01" onclick="alternarSeleccionLote('01')" class="bg-white hover:bg-slate-100 text-slate-800 p-2 rounded-xl border border-slate-200 transition-all cursor-pointer flex flex-col items-center justify-center shadow-xs min-h-[65px]" disabled><span class="text-xs font-bold text-slate-400">Lote 01</span><span id="lblPropietario-01" class="text-[10px] font-semibold text-slate-700 truncate w-full mt-0.5 uppercase tracking-tight">...</span></button>
+                        <button id="btnLote-02" onclick="alternarSeleccionLote('02')" class="bg-white hover:bg-slate-100 text-slate-800 p-2 rounded-xl border border-slate-200 transition-all cursor-pointer flex flex-col items-center justify-center shadow-xs min-h-[65px]" disabled><span class="text-xs font-bold text-slate-400">Lote
